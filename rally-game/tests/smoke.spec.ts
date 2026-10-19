@@ -140,6 +140,21 @@ test.describe('smoke', () => {
     expect(errors).toEqual([]);
   });
 
+  test('U toggles MPH / KM/H on the speedometer', async ({ page }) => {
+    const errors: string[] = [];
+    await openGame(page, errors);
+    const unit = () => page.locator('.speed-box .u').textContent();
+    await step(page, 0.1);
+    expect(await unit()).toBe('MPH');
+    await page.keyboard.press('u');
+    await step(page, 0.1);
+    expect(await unit()).toBe('KM/H');
+    await page.keyboard.press('u');
+    await step(page, 0.1);
+    expect(await unit()).toBe('MPH');
+    expect(errors).toEqual([]);
+  });
+
   test('9:16 preview mode keeps the canvas undistorted', async ({ page }) => {
     const errors: string[] = [];
     await openGame(page, errors);

@@ -62,6 +62,8 @@ export class Game {
   readonly input: Input;
   sun!: THREE.DirectionalLight;
   sky!: THREE.Mesh;
+  private finishCam = false;
+  private cursorHidden = false;
   ghost!: GhostPlayer;
   private readonly ghostRec = new GhostRecorder();
   water!: Water;
@@ -209,6 +211,7 @@ export class Game {
     this.autopilot = new Autopilot(this.track);
 
     this.hud = new Hud(this.hudRoot, this.track);
+    this.hud.imperial = !loadSettings().metric;
     this.menus = new Menus(this.overlayRoot, this);
     this.best = loadBest();
 
@@ -269,6 +272,10 @@ export class Game {
   }
 
   startRace(skipCountdown = false): void {
+    if (this.finishCam) {
+      this.cam.mode = 'chase';
+      this.finishCam = false;
+    }
     this.resetToStart();
     this.ghostRec.reset();
     this.ghost.load();
@@ -301,6 +308,10 @@ export class Game {
   }
 
   toTitle(): void {
+    if (this.finishCam) {
+      this.cam.mode = 'chase';
+      this.finishCam = false;
+    }
     this.resetToStart();
     this.state = 'title';
     this.hud.setVisible(false);
@@ -426,6 +437,15 @@ export class Game {
           break;
         case 'portrait':
           this.setPortrait(!this.portrait);
+          break;
+        case 'units':
+          this.hud.imperial = !this.hud.imperial;
+          saveSettings({ ...loadSettings(), metric: !this.hud.imperial });
+          this.hud.message(this.hud.imperial ? 'MPH' : 'KM/H', 0.8, true);
+          break;
+        case 'fullscreen':
+          if (document.fullscreenElement) void document.exitFullscreen();
+          else void document.documentElement.requestFullscreen?.().catch(() => undefined);
           break;
         case 'ghost':
           this.ghost.enabled = !this.ghost.enabled;
@@ -554,6 +574,11 @@ export class Game {
       this.ghostRec.save(t);
     }
     this.hud.message('FINISH', 1.6);
+    if (!this.manual && this.cam.mode === 'chase') {
+      this.cam.mode = 'cinematic';
+      this.cam.reset();
+      this.finishCam = true;
+    }
     this.audio.finish();
     setTimeout(() => {
       if (this.state === 'finished') this.menus.showResults(t, prev?.time ?? null, isBest, this.splits);
@@ -608,6 +633,11 @@ export class Game {
     const gs = this.field.sample(_pos.x, _pos.z, sim.trackHint, this.blobSample);
     this.car.placeBlob(_pos.x, gs.h, _pos.z, sim.heading, gs.nx, gs.ny, gs.nz, _pos.y - gs.h - 0.48);
     this.cam.showroom = this.state === 'title';
+    const hideCursor = this.state === 'racing' || this.state === 'countdown';
+    if (hideCursor !== this.cursorHidden) {
+      this.cursorHidden = hideCursor;
+      this.frame.style.cursor = hideCursor ? 'none' : '';
+    }
     this.cam.update(dt, sim, _pos, _quat, this.field, this.track);
     this.fx.update(dt, sim, this.cam.camera, this.state === 'racing' || this.state === 'finished' || this.state === 'countdown');
     this.veg.update(dt, this.cam.camera.position, this.time);

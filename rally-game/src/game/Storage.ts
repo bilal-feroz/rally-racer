@@ -41,6 +41,7 @@ export interface Settings {
   muted: boolean;
   volume: number;
   quality?: Quality;
+  metric?: boolean;
 }
 
 export function loadSettings(): Settings {

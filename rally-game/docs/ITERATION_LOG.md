@@ -198,3 +198,10 @@ Test environment for every run: Windows 11, RTX 3050 Laptop GPU (ANGLE/D3D11), R
   - Autostart idle frames offset the first recording. The test now restarts first.
   - `setAutopilot(aggression)` didn't rebuild the speed plan. Fixed.
 - Visual: `.cache/ghost.png` shows the ghost pulling ahead of a slower run, with the split delta +0.01 at gate 2.
+
+## Iteration 12: quality-of-life
+- U toggles MPH ↔ KM/H, persisted. Your 16:9 screenshot uses km/h, the reel uses MPH.
+- F toggles fullscreen.
+- The cursor is hidden while racing.
+- After the finish line the camera cuts to a trackside TV shot while the car brakes, and is restored on restart or quitting to the title.
+- New test: U toggles the speedometer unit. 13/13 pass.

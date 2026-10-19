@@ -1,6 +1,6 @@
 import type { DriveInput } from '../vehicle/VehicleSim';
 
-export type Action = 'recover' | 'camera' | 'pause' | 'mute' | 'restart' | 'confirm' | 'portrait' | 'debug' | 'ghost';
+export type Action = 'recover' | 'camera' | 'pause' | 'mute' | 'restart' | 'confirm' | 'portrait' | 'debug' | 'ghost' | 'units' | 'fullscreen';
 
 /** Keyboard + gamepad input. Produces analog drive input and discrete action events. */
 export class Input {
@@ -62,6 +62,10 @@ export class Input {
         return 'debug';
       case 'KeyG':
         return 'ghost';
+      case 'KeyU':
+        return 'units';
+      case 'KeyF':
+        return 'fullscreen';
     }
     return null;
   }

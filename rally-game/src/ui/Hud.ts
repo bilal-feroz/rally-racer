@@ -44,6 +44,9 @@ export class Hud {
   private tachCanvas: HTMLCanvasElement;
   private gearEl: HTMLDivElement;
   private speedEl: HTMLSpanElement;
+  private unitEl!: HTMLSpanElement;
+  /** true = MPH + miles, false = km/h + km */
+  imperial = true;
   private odoEl: HTMLDivElement;
   private barSteer: HTMLElement;
   private barThr: HTMLElement;
@@ -87,7 +90,8 @@ export class Hud {
     tach.append(this.tachCanvas, this.gearEl);
     const sp = el('div', 'speed-box');
     this.speedEl = el('span', 'v', '0');
-    sp.append(this.speedEl, el('span', 'u', 'MPH'));
+    this.unitEl = el('span', 'u', 'MPH');
+    sp.append(this.speedEl, this.unitEl);
     br.append(tags, tach, sp);
 
     const bl = el('div', 'hud-bl');
@@ -147,10 +151,11 @@ export class Hud {
   update(dt: number, st: HudState): void {
     this.timeEl.textContent = formatTime(st.time);
     this.gateEl.textContent = `GATE ${Math.min(st.gate + 1, st.gates)} OF ${st.gates}`;
-    const mph = Math.round(Math.abs(st.speedMps) * 2.23694);
+    const mph = Math.round(Math.abs(st.speedMps) * (this.imperial ? 2.23694 : 3.6));
+    this.unitEl.textContent = this.imperial ? 'MPH' : 'KM/H';
     this.speedEl.textContent = String(mph);
     this.gearEl.textContent = st.gear < 0 ? 'R' : st.gear === 0 ? 'N' : String(st.gear);
-    this.odoEl.innerHTML = `${(st.distanceM / 1609.34).toFixed(2)}<small>MI</small>`;
+    this.odoEl.innerHTML = this.imperial ? `${(st.distanceM / 1609.34).toFixed(2)}<small>MI</small>` : `${(st.distanceM / 1000).toFixed(2)}<small>KM</small>`;
     const steer = clamp(st.steer, -1, 1);
     this.barSteer.style.left = steer < 0 ? `${50 + steer * 50}%` : '50%';
     this.barSteer.style.width = `${Math.abs(steer) * 50}%`;

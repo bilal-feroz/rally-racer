@@ -41,7 +41,7 @@ export const CAR = {
   /** rear tyres slide a bit earlier for a drifty balance */
   rearGrip: 0.97,
   /** rear grip factor at high speed */
-  rearGripHigh: 1.1,
+  rearGripHigh: 1.09,
   /** longitudinal share in friction ellipse */
   ellipseLong: 0.82,
   loadSensitivity: 0.09,
@@ -95,6 +95,8 @@ export const CAR = {
   stabiliseSlip: 20 * DEG,
   /** stabiliser yaw torque per rad of excess slip (N m / rad) */
   stabiliseGain: 30000,
+  /** arcade yaw torque when handbrake + steer are combined (N m) */
+  handbrakeYaw: 4200,
 
   // body collision box (for ground penalty contacts)
   body: { halfW: 0.84, front: 2.02, rear: -2.0, low: -0.22, high: 0.78 },

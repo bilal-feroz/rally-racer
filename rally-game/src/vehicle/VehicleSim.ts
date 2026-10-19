@@ -512,6 +512,13 @@ export class VehicleSim {
     this.wheelspin = drivenCount > 0 ? spinSum / drivenCount : 0;
     for (const w of this.wheels) w.spinAngle += w.angVel * dt;
 
+    // ---------------------------------------------------------------- handbrake turn-in (arcade assist)
+    // Pulling the handbrake while steering rotates the car decisively even at speed.
+    if (inp.handbrake > 0.3 && grounded >= 2 && vf > 6) {
+      const k = P.handbrakeYaw * inp.handbrake * smoothstep(6, 22, vf) * (1 - smoothstep(0.45, 0.8, Math.abs(this.bodySlip)));
+      this.torqueAcc.addScaledVector(this.up, -clamp(this.steerInput, -1, 1) * k);
+    }
+
     // ---------------------------------------------------------------- drift stabiliser (arcade assist)
     // Beyond ~25 deg of body slip at speed, add a yaw torque that pulls the nose back toward the
     // direction of travel. Drifts stay big and playful; unintended spins become rare.

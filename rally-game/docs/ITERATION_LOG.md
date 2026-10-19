@@ -205,3 +205,13 @@ Test environment for every run: Windows 11, RTX 3050 Laptop GPU (ANGLE/D3D11), R
 - The cursor is hidden while racing.
 - After the finish line the camera cuts to a trackside TV shot while the car brakes, and is restored on restart or quitting to the title.
 - New test: U toggles the speedometer unit. 13/13 pass.
+
+## Iteration 13: drifts at speed without losing keyboard stability
+- **Evidence (bench):** above about 85 mph the car was too planted to drift on purpose. Lift-off gave 5.9° and a handbrake flick 5–6°. The reference holds 20–30° slides at 65–100 mph.
+- **Change:** arcade handbrake turn-in assist. Handbrake plus steer adds a yaw torque (4.2 kN·m) that scales with speed and fades out beyond 45° of slip.
+- **Result:** handbrake flicks give 25.5° at 67 mph and 22.7° at 90 mph, with no spins.
+- **Rear grip trade-off at speed**
+  - At 1.06 (from 1.10), lift-off at 90 mph rose to 8.2°. But the bang-bang keyboard bot then needed 2 recoveries (113.9 s).
+  - Settled at 1.09: keyboard bot 116.0 s with 0 recoveries; analog autopilot 91.5 s clean.
+- Keyboard full-lock safety is unchanged: peak 9–10°, settles to 0.
+- 13/13 tests pass.

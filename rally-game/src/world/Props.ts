@@ -121,8 +121,50 @@ export class Props {
       const f = T.frameAt(s);
       this.reserved.push({ x: f.x, z: f.z, r: 30 });
     }
+    // landmark water tower inside the banked hairpin (visible through the whole corner)
+    const banked = T.tags.find((t) => t.name === 'banked');
+    if (banked) {
+      const apex = T.frameAt((banked.s0 + banked.s1) / 2);
+      const toCentre = Math.sign(apex.kappa || -1); // centre of the turn lies on the inside
+      const d = 38;
+      this.towerPos = { x: apex.x + apex.lx * d * toCentre, z: apex.z + apex.lz * d * toCentre };
+      this.reserved.push({ x: this.towerPos.x, z: this.towerPos.z, r: 9 });
+    }
+    // round hay bales on the outside of the two hairpins
+    for (const name of ['tight1', 'tight2']) {
+      const tg = T.tags.find((t) => t.name === name);
+      if (!tg) continue;
+      const mid = (tg.s0 + tg.s1) / 2;
+      for (let k = -2; k <= 2; k++) {
+        const f = T.frameAt(mid + k * 2.6);
+        const outside = -Math.sign(f.kappa || 1);
+        const off = f.hw + SHOULDER + 1.1;
+        this.bales.push({ x: f.x + f.lx * off * outside, z: f.z + f.lz * off * outside, heading: f.heading });
+      }
+      const fm = T.frameAt(mid);
+      const out = -Math.sign(fm.kappa || 1);
+      this.reserved.push({ x: fm.x + fm.lx * (fm.hw + SHOULDER + 2) * out, z: fm.z + fm.lz * (fm.hw + SHOULDER + 2) * out, r: 9 });
+    }
+    // log piles by the service area and along the valley
+    const valley = T.tags.find((t) => t.name === 'valley');
+    const pileSpots: [number, number][] = [
+      [T.startS + 34, 1],
+      [T.startS + 46, -1],
+    ];
+    if (valley) pileSpots.push([valley.s0 + 60, 1]);
+    for (const [ps, side] of pileSpots) {
+      const f = T.frameAt(ps);
+      const off = f.hw + SHOULDER + 5.5;
+      const pile = { x: f.x + f.lx * off * side, z: f.z + f.lz * off * side, heading: f.heading };
+      this.piles.push(pile);
+      this.reserved.push({ x: pile.x, z: pile.z, r: 5 });
+    }
     void seed;
   }
+
+  private towerPos: { x: number; z: number } | null = null;
+  private readonly bales: { x: number; z: number; heading: number }[] = [];
+  private readonly piles: { x: number; z: number; heading: number }[] = [];
 
   /** Must be called after terrain heights exist. */
   build(seed: number): void {
@@ -219,13 +261,11 @@ export class Props {
       this.fence(fin.s1 - 140, fin.s1 + 60, -1, wood);
     }
 
-    // ---------------------------------------------------------------- water tower landmark near the banked corner
-    if (banked) {
-      const f = T.frameAt(banked.s0 + 60);
-      const x = f.x + f.lx * 70;
-      const z = f.z + f.lz * 70;
-      this.waterTower(x, F.heightAt(x, z), z, wood);
-    }
+    // ---------------------------------------------------------------- landmarks and set dressing
+    if (this.towerPos) this.waterTower(this.towerPos.x, F.heightAt(this.towerPos.x, this.towerPos.z), this.towerPos.z, wood);
+    this.hayBales();
+    this.logPiles(wood);
+    void banked;
     // cabins near the start
     const st = T.frameAt(T.startS + 12);
     for (const side of [1, -1]) {
@@ -362,6 +402,129 @@ export class Props {
     const mesh = new THREE.Mesh(mergeGeometries(parts), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
     mesh.castShadow = true;
     this.group.add(mesh);
+    if (faceX !== undefined && faceZ !== undefined) this.tapeLine(x, z, faceX, faceZ);
+  }
+
+  private tapeMat: THREE.MeshLambertMaterial | null = null;
+
+  /** Red/white spectator tape on posts between a crowd at (x,z) and the road centre (fx,fz). */
+  private tapeLine(x: number, z: number, fx: number, fz: number): void {
+    const F = this.field;
+    if (!this.tapeMat) {
+      const tex = canvasTex(256, 16, (g) => {
+        for (let i = 0; i < 17; i++) {
+          g.fillStyle = i % 2 ? '#f4f1ea' : '#d8262c';
+          g.beginPath();
+          g.moveTo(i * 16, 0);
+          g.lineTo(i * 16 + 16, 0);
+          g.lineTo(i * 16 + 8, 16);
+          g.lineTo(i * 16 - 8, 16);
+          g.closePath();
+          g.fill();
+        }
+      });
+      tex.wrapS = THREE.RepeatWrapping;
+      this.tapeMat = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
+    }
+    const dx = fx - x;
+    const dz = fz - z;
+    const dl = Math.hypot(dx, dz) || 1;
+    const nx = dx / dl;
+    const nz = dz / dl;
+    // the line runs perpendicular to the direction toward the road, 2.6 m in front of the crowd
+    const tx = -nz;
+    const tz = nx;
+    const cx = x + nx * 2.6;
+    const cz = z + nz * 2.6;
+    const posts: THREE.Vector3[] = [];
+    for (let k = -2; k <= 2; k++) {
+      const px = cx + tx * k * 2.4;
+      const pz = cz + tz * k * 2.4;
+      posts.push(new THREE.Vector3(px, F.heightAt(px, pz), pz));
+    }
+    const postGeo: THREE.BufferGeometry[] = [];
+    const tapePos: number[] = [];
+    const tapeUv: number[] = [];
+    const sag = (t: number) => 0.12 * 4 * t * (1 - t);
+    for (let k = 0; k < posts.length; k++) {
+      const p = posts[k];
+      const g = new THREE.BoxGeometry(0.06, 1.1, 0.06);
+      g.translate(p.x, p.y + 0.55, p.z);
+      postGeo.push(g);
+      this.addObstacle(p.x, p.z, 0.08, 1.1);
+      if (k === 0) continue;
+      const a = posts[k - 1];
+      // sagging ribbon, 4 sub-segments per span
+      const P = (t: number) => new THREE.Vector3(a.x + (p.x - a.x) * t, a.y + (p.y - a.y) * t + 0.95 - sag(t), a.z + (p.z - a.z) * t);
+      for (let q = 0; q < 4; q++) {
+        const t0 = q / 4;
+        const t1 = (q + 1) / 4;
+        const p0 = P(t0);
+        const p1 = P(t1);
+        const h = 0.08;
+        tapePos.push(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p0.x, p0.y - h, p0.z, p1.x, p1.y, p1.z, p1.x, p1.y - h, p1.z, p0.x, p0.y - h, p0.z);
+        const u0 = (k - 1 + t0) * 1.2;
+        const u1 = (k - 1 + t1) * 1.2;
+        tapeUv.push(u0, 1, u1, 1, u0, 0, u1, 1, u1, 0, u0, 0);
+      }
+    }
+    const pm = new THREE.Mesh(mergeGeometries(postGeo), new THREE.MeshLambertMaterial({ color: '#d9d4c7' }));
+    pm.castShadow = true;
+    const tg = new THREE.BufferGeometry();
+    tg.setAttribute('position', new THREE.Float32BufferAttribute(tapePos, 3));
+    tg.setAttribute('uv', new THREE.Float32BufferAttribute(tapeUv, 2));
+    tg.computeVertexNormals();
+    const tm = new THREE.Mesh(tg, this.tapeMat);
+    tm.castShadow = true;
+    this.group.add(pm, tm);
+  }
+
+  private hayBales(): void {
+    if (!this.bales.length) return;
+    const F = this.field;
+    const geo = new THREE.CylinderGeometry(0.62, 0.62, 1.15, 12);
+    geo.rotateZ(Math.PI / 2);
+    const mat = new THREE.MeshLambertMaterial({ color: '#d4b469', flatShading: true });
+    const im = new THREE.InstancedMesh(geo, mat, this.bales.length);
+    const m = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    const up = new THREE.Vector3(0, 1, 0);
+    this.bales.forEach((b, i) => {
+      q.setFromAxisAngle(up, b.heading);
+      m.compose(new THREE.Vector3(b.x, F.heightAt(b.x, b.z) + 0.58, b.z), q, new THREE.Vector3(1, 1, 1));
+      im.setMatrixAt(i, m);
+      this.addObstacle(b.x, b.z, 0.65, 1.2);
+    });
+    im.castShadow = true;
+    im.receiveShadow = true;
+    im.computeBoundingSphere();
+    this.group.add(im);
+  }
+
+  private logPiles(wood: THREE.Material): void {
+    const F = this.field;
+    const logGeo = new THREE.CylinderGeometry(0.24, 0.26, 4.2, 8);
+    logGeo.rotateZ(Math.PI / 2);
+    for (const p of this.piles) {
+      const parts: THREE.BufferGeometry[] = [];
+      const rows = [5, 4, 3, 2];
+      rows.forEach((count, r) => {
+        for (let c = 0; c < count; c++) {
+          const g = logGeo.clone();
+          g.translate(0, 0.24 + r * 0.42, (c - (count - 1) / 2) * 0.5);
+          parts.push(g);
+        }
+      });
+      const merged = mergeGeometries(parts);
+      // logs lie parallel to the road
+      merged.rotateY(p.heading + Math.PI / 2);
+      merged.translate(p.x, F.heightAt(p.x, p.z) - 0.05, p.z);
+      const mesh = new THREE.Mesh(merged, wood);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      this.group.add(mesh);
+      this.addObstacle(p.x, p.z, 1.6, 1.6);
+    }
   }
 
   private fence(s0: number, s1: number, side: number, mat: THREE.Material): void {

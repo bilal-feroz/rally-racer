@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rally-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "rally-game", "run", "dev"],
+      "port": 5173,
+      "url": "http://127.0.0.1:5173"
+    }
+  ]
+}

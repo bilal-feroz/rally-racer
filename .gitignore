@@ -1,0 +1,15 @@
+# Third-party reference footage: local only, never published
+hardpack_rally_reference_pack/
+rally-game/reference/
+rally-game/screenshots/*comparison*
+rally-game/screenshots/compare/
+
+# Node / build
+node_modules/
+rally-game/dist/
+rally-game/test-results/
+rally-game/playwright-report/
+rally-game/.cache/
+*.log
+.DS_Store
+Thumbs.db

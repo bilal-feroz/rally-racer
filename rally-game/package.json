@@ -1,0 +1,29 @@
+{
+  "name": "timberline-rally",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Timberline Rally - a stylised low-poly arcade rally vertical slice (Three.js + TypeScript)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "playwright test",
+    "test:smoke": "playwright test tests/smoke.spec.ts",
+    "test:drive": "playwright test tests/drive.spec.ts",
+    "capture": "node scripts/capture.mjs",
+    "demo": "node scripts/record-demo.mjs"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/three": "0.186.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.4"
+  }
+}

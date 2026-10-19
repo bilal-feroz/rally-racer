@@ -215,3 +215,9 @@ Test environment for every run: Windows 11, RTX 3050 Laptop GPU (ANGLE/D3D11), R
   - Settled at 1.09: keyboard bot 116.0 s with 0 recoveries; analog autopilot 91.5 s clean.
 - Keyboard full-lock safety is unchanged: peak 9–10°, settles to 0.
 - 13/13 tests pass.
+
+## Iteration 14: camera foliage avoidance, landing dust, assist levels
+- **Camera:** the chase camera shortens its boom when a tree or post is within 2.2 m of the lens, and eases back out. This stops the camera ending up inside roadside spruces in tight corners (`.cache/hairpin-cam.png`).
+- **Landing dust:** hard landings spawn a ring of dust at each grounded wheel.
+- **Assists:** the pause menu has *Assists: arcade / pro* (persisted). Pro disables the countersteer bias, the drift stabiliser and the handbrake yaw assist.
+- 13/13 tests pass. Autopilot 91.6 s clean.

@@ -42,6 +42,7 @@ export class Effects {
   private readonly _d = new THREE.Vector3();
   private readonly _s = new THREE.Vector3();
   private rnd = 0.5;
+  private landed = false;
 
   constructor(
     scene: THREE.Scene,
@@ -230,6 +231,24 @@ export class Effects {
         else this.lastMark[k] = null;
       }
     }
+    // landing / big impact: a ring of dust around the wheels
+    const impact = Math.max(sim.landingImpact, 0);
+    if (active && impact > 0.3 && !this.landed) {
+      this.landed = true;
+      for (const w of sim.wheels) {
+        if (!w.contact || w.surface === SURF_GRASS) continue;
+        for (let i = 0; i < 7; i++) {
+          const a = this.random() * Math.PI * 2;
+          const sp = 1.5 + this.random() * 2.5;
+          this.spawn(
+            w.hit.x, w.hit.y + 0.1, w.hit.z,
+            sim.vel.x * 0.55 + Math.cos(a) * sp, 0.6 + this.random() * 1.2, sim.vel.z * 0.55 + Math.sin(a) * sp,
+            1.0 + this.random() * 0.8, 0.6, 3.2 + this.random() * 1.5, 0.35 * Math.min(1, impact + 0.3),
+          );
+        }
+      }
+    } else if (impact < 0.1) this.landed = false;
+
     // integrate particles
     const drag = Math.exp(-2.4 * dt);
     let maxIdx = 0;

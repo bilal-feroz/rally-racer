@@ -42,6 +42,7 @@ Your personal best, gate splits and a **ghost car of your best run** are saved i
 
 **Pause menu:**
 - **Quality** cycles High / Medium / Low. It also downgrades itself once if the first seconds of driving run below 42 fps.
+- **Assists** switches between *arcade* (countersteer bias, drift stabiliser, handbrake turn-in help) and *pro* (raw car).
 - **Camera** and **Mute** do the same as their keys.
 
 ### Useful URL options

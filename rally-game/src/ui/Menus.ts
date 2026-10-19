@@ -41,6 +41,7 @@ export class Menus {
   private results: HTMLElement;
   private bestEl: HTMLElement;
   private qualityBtn: HTMLButtonElement | null = null;
+  private assistBtn: HTMLButtonElement | null = null;
 
   constructor(
     root: HTMLElement,
@@ -83,6 +84,15 @@ export class Menus {
         this.qualityBtn = b;
         return b;
       })(),
+      (() => {
+        const label = () => `Assists: ${game.sim.assists ? 'arcade' : 'pro'}`;
+        const b = button(label(), 'ghost', () => {
+          game.setAssists(!game.sim.assists);
+          b.textContent = label();
+        });
+        this.assistBtn = b;
+        return b;
+      })(),
       button('Quit to title', 'ghost', () => game.toTitle()),
     );
     pc.append(pb, h('div', '', CONTROLS));
@@ -109,6 +119,7 @@ export class Menus {
   showPause(): void {
     this.hideAll();
     if (this.qualityBtn) this.qualityBtn.textContent = `Quality: ${this.game.quality}`;
+    if (this.assistBtn) this.assistBtn.textContent = `Assists: ${this.game.sim.assists ? 'arcade' : 'pro'}`;
     this.pause.classList.remove('hidden');
   }
 

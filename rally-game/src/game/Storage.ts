@@ -42,6 +42,7 @@ export interface Settings {
   volume: number;
   quality?: Quality;
   metric?: boolean;
+  proAssists?: boolean;
 }
 
 export function loadSettings(): Settings {

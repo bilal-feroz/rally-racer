@@ -24,6 +24,7 @@ export class ChaseCamera {
   private pitchLook = 0;
   private turnLook = 0;
   private followY = 0;
+  private boom = 1;
   /** title-screen orbit */
   showroom = false;
   private orbitAngle = 0;
@@ -163,7 +164,18 @@ export class ChaseCamera {
     if (!this.init) this.followY = carPos.y;
     // stay low on take-off so the car visibly climbs in frame; catch up quickly after landing
     this.followY = damp(this.followY, carPos.y, sim.groundedWheels === 0 ? 0.7 : sim.airTime === 0 && sim.lastAirTime > 0.3 ? 5 : 9, dt);
-    cam.position.set(carPos.x + this.offset.x, this.followY + this.heightOff, carPos.z + this.offset.z);
+    // keep the lens out of roadside foliage: pull in along the boom while a tree crowds it
+    let boom = 1;
+    if (this.clearance) {
+      for (let k = 0; k < 4; k++) {
+        const bx = carPos.x + this.offset.x * boom;
+        const bz = carPos.z + this.offset.z * boom;
+        if (this.clearance(bx, bz) > 2.2) break;
+        boom -= 0.18;
+      }
+    }
+    this.boom = damp(this.boom, boom, boom < this.boom ? 10 : 2.5, dt);
+    cam.position.set(carPos.x + this.offset.x * this.boom, this.followY + this.heightOff, carPos.z + this.offset.z * this.boom);
     const g = field.heightAt(cam.position.x, cam.position.z);
     if (cam.position.y < g + 0.9) cam.position.y = g + 0.9;
 

@@ -140,6 +140,8 @@ export class VehicleSim {
   private readonly prevVel = new THREE.Vector3();
 
   input: DriveInput = { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
+  /** 1 = arcade assists (default), 0 = pro (no countersteer/stabiliser/handbrake-yaw help) */
+  assists = 1;
 
   private readonly gs: GroundSample = {} as GroundSample;
   private readonly forceAcc = new THREE.Vector3();
@@ -254,7 +256,7 @@ export class VehicleSim {
     // are biased toward the direction of travel so slides are catchable with a keyboard
     if (vf > 4) {
       const excess = Math.max(0, Math.abs(this.bodySlip) - 6 * DEG);
-      steer += Math.sign(this.bodySlip) * Math.min(excess * P.countersteerGain * 1.3, P.countersteerMax);
+      steer += this.assists * Math.sign(this.bodySlip) * Math.min(excess * P.countersteerGain * 1.3, P.countersteerMax);
     }
     this.steerAngle = clamp(steer, -P.maxSteerLow, P.maxSteerLow);
 
@@ -515,7 +517,7 @@ export class VehicleSim {
     // ---------------------------------------------------------------- handbrake turn-in (arcade assist)
     // Pulling the handbrake while steering rotates the car decisively even at speed.
     if (inp.handbrake > 0.3 && grounded >= 2 && vf > 6) {
-      const k = P.handbrakeYaw * inp.handbrake * smoothstep(6, 22, vf) * (1 - smoothstep(0.45, 0.8, Math.abs(this.bodySlip)));
+      const k = this.assists * P.handbrakeYaw * inp.handbrake * smoothstep(6, 22, vf) * (1 - smoothstep(0.45, 0.8, Math.abs(this.bodySlip)));
       this.torqueAcc.addScaledVector(this.up, -clamp(this.steerInput, -1, 1) * k);
     }
 
@@ -525,7 +527,7 @@ export class VehicleSim {
     if (grounded >= 2 && this.speed > 9 && inp.handbrake < 0.5 && vf > 0) {
       const ex = Math.abs(this.bodySlip) - P.stabiliseSlip;
       if (ex > 0) {
-        const k = P.stabiliseGain * smoothstep(9, 30, this.speed);
+        const k = this.assists * P.stabiliseGain * smoothstep(9, 30, this.speed);
         // beta > 0: velocity to the right of the nose -> yaw right (negative about +Y)
         this.torqueAcc.addScaledVector(this.up, -Math.sign(this.bodySlip) * k * Math.min(ex, 0.6));
       }

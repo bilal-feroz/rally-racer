@@ -212,6 +212,7 @@ export class Game {
 
     this.hud = new Hud(this.hudRoot, this.track);
     this.hud.imperial = !loadSettings().metric;
+    this.sim.assists = loadSettings().proAssists ? 0 : 1;
     this.menus = new Menus(this.overlayRoot, this);
     this.best = loadBest();
 
@@ -345,6 +346,12 @@ export class Game {
   setCamera(mode: CameraMode): void {
     this.cam.mode = mode;
     this.cam.reset();
+  }
+
+  /** Arcade (1) or Pro (0) driving assists. */
+  setAssists(arcade: boolean): void {
+    this.sim.assists = arcade ? 1 : 0;
+    saveSettings({ ...loadSettings(), proAssists: !arcade });
   }
 
   /** Pixel ratio, shadow resolution and vegetation draw distance per preset. */

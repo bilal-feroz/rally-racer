@@ -12,6 +12,7 @@ export const GROUND = {
   sandDark: new THREE.Color('#c4a47a'),
   dirtBank: new THREE.Color('#c49a6c'),
   rock: new THREE.Color('#8f8a7e'),
+  shore: new THREE.Color('#b9a57f'),
   farForest: new THREE.Color('#3f6236'),
   farMeadow: new THREE.Color('#7c9a4c'),
 };

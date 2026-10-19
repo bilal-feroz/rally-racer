@@ -128,6 +128,35 @@ export class TerrainField {
         this.heights[k] = this.rawHeight(x, z, k);
       }
     }
+    this.lake = this.findLake();
+  }
+
+  /** Lake filling the designed valley below the downhill vista (null if none). */
+  lake: { x: number; z: number; r: number; level: number } | null = null;
+
+  private findLake(): { x: number; z: number; r: number; level: number } | null {
+    const f = this.features[0];
+    if (!f || f.h > 0) return null;
+    // fill the designed bowl from its centre
+    let floor = Infinity;
+    for (let dz = -40; dz <= 40; dz += 10) for (let dx = -40; dx <= 40; dx += 10) floor = Math.min(floor, this.heightAt(f.x + dx, f.z + dz));
+    // never let the water reach the road
+    let roadMin = Infinity;
+    for (let i = 0; i < this.track.n; i += 4) {
+      const d = Math.hypot(this.track.px[i] - f.x, this.track.pz[i] - f.z);
+      if (d < 360) roadMin = Math.min(roadMin, this.track.py[i]);
+    }
+    const level = Math.min(floor + 12, roadMin - 7);
+    if (level < floor + 2) return null;
+    return { x: f.x, z: f.z, r: f.r * 1.5, level };
+  }
+
+  /** Is (x,z) under the lake surface (with a margin)? */
+  underWater(x: number, z: number, margin = 0): boolean {
+    const L = this.lake;
+    if (!L) return false;
+    if ((x - L.x) ** 2 + (z - L.z) ** 2 > L.r * L.r) return false;
+    return this.heightAt(x, z) < L.level + margin;
   }
 
   private buildFeatures(): void {
@@ -135,9 +164,12 @@ export class TerrainField {
     const t = this.track;
     const vista = t.tags.find((g) => g.name === 'vista');
     if (vista) {
-      const f = t.frameAt((vista.s0 + vista.s1) / 2);
-      // valley on the right side (negative left vector)
-      this.features.push({ x: f.x - f.lx * 260, z: f.z - f.lz * 260, r: 170, h: -28 });
+      // valley with a lake ahead-right of the jump crest: the road bends left around it, so
+      // it sits in the driver's view while cresting the jump and descending the vista
+      const f = t.frameAt(vista.s0);
+      const fwd = 300;
+      const right = 210;
+      this.features.push({ x: f.x + f.tx * fwd - f.lx * right, z: f.z + f.tz * fwd - f.lz * right, r: 175, h: -34 });
     }
     const banked = t.tags.find((g) => g.name === 'banked');
     if (banked) {

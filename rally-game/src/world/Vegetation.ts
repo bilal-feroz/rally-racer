@@ -149,6 +149,8 @@ export class Vegetation implements CollisionWorld {
       return cz * nChunkX + cx;
     };
     const proj = { i: 0, t: 0, s: 0, d: 0, dist: 0 };
+    const vista = T.tags.find((t) => t.name === 'vista');
+    const lake = F.lake;
     const xMin = F.x0 + 4;
     const zMin = F.z0 + 4;
     const xMax = F.x0 + (F.nx - 1) * F.cell - 4;
@@ -175,8 +177,13 @@ export class Vegetation implements CollisionWorld {
           const k = T.kappaAt(p.s);
           if (Math.sign(p.d) === Math.sign(k) && Math.abs(k) > 1 / 160 && u < 28) prob *= 0.15;
           if (p.s < T.startS + 60 || Math.abs(p.s - T.finishS) < 50) prob *= 0.4;
+          // open the view toward the lake on the right of the vista descent
+          if (vista && p.s > vista.s0 - 70 && p.s < vista.s1 && p.d < 0) prob *= 0.06;
         }
+        // lakeside meadow
+        if (lake && (px - lake.x) ** 2 + (pz - lake.z) ** 2 < (lake.r * 0.75) ** 2) prob *= 0.35;
         if (this.isReserved(px, pz)) continue;
+        if (F.underWater(px, pz, 0.8)) continue;
         if (r1 > prob) continue;
         const conif = 0.2 + 0.65 * B.conifer(px, pz);
         let kind: number;
@@ -206,6 +213,7 @@ export class Vegetation implements CollisionWorld {
         const nearRoad = 1 - smoothstep(4, 22, u);
         const prob = 0.05 + 0.5 * nearRoad;
         if (r1 > prob) continue;
+        if (F.underWater(px, pz, 0.3)) continue;
         const y = F.heightAt(px, pz) - 0.03;
         const ci = chunkOf(px, pz);
         const r2 = rnd();

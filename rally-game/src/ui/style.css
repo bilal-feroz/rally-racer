@@ -59,6 +59,13 @@ body.portrait-preview #stage-frame {
   outline: none;
 }
 
+#vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 75% 70% at 50% 46%, rgba(0, 0, 0, 0) 62%, rgba(12, 16, 26, 0.3) 100%);
+}
+
 #hud-root,
 #overlay-root {
   position: absolute;

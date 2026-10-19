@@ -59,7 +59,12 @@ function bannerTexture(text: string, checker: boolean): THREE.CanvasTexture {
       g.fillRect(0, 114, 1024, 14);
     }
     g.fillStyle = '#f4f1ea';
-    g.font = 'bold 72px Arial';
+    let size = 72;
+    g.font = `bold ${size}px Arial`;
+    while (g.measureText(text).width > 1024 * 0.9 && size > 20) {
+      size -= 2;
+      g.font = `bold ${size}px Arial`;
+    }
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.fillText(text, 512, 66);

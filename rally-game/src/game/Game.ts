@@ -17,6 +17,7 @@ import { createSky } from '../world/Sky';
 import { TerrainField } from '../world/TerrainField';
 import { TerrainMesh } from '../world/TerrainMesh';
 import { Vegetation } from '../world/Vegetation';
+import { Water } from '../world/Water';
 import { Input } from './Input';
 import { loadBest, saveBest, type BestRecord } from './Storage';
 import { Effects } from '../vfx/Effects';
@@ -60,6 +61,7 @@ export class Game {
   readonly input: Input;
   sun!: THREE.DirectionalLight;
   sky!: THREE.Mesh;
+  water!: Water;
 
   state: GameState = 'loading';
   private stateBeforePause: GameState = 'racing';
@@ -181,6 +183,8 @@ export class Game {
     const envRT = pmrem.fromScene(envScene, 0, 0.1, 3000);
     pmrem.dispose();
     this.car = new CarModel(envRT.texture);
+    this.water = new Water(this.field, envRT.texture);
+    if (this.water.mesh) scene.add(this.water.mesh);
     scene.add(this.car.root, this.car.blob);
     this.fx = new Effects(scene, this.field);
     this.audio = new AudioEngine(this.opts.noAudio);
@@ -196,6 +200,16 @@ export class Game {
     progress(1, 'Ready');
     // warm up shaders
     this.renderer.compile(scene, this.cam.camera);
+    scene.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+      if (!m) return;
+      for (const mat of Array.isArray(m) ? m : [m]) {
+        for (const key of ['map', 'emissiveMap', 'normalMap'] as const) {
+          const t = (mat as unknown as Record<string, THREE.Texture | null>)[key];
+          if (t) this.renderer.initTexture(t);
+        }
+      }
+    });
     this.state = 'title';
     if (this.opts.autostart) this.startRace(this.opts.test);
     else this.menus.showTitle();
@@ -530,6 +544,7 @@ export class Game {
     this.fx.update(dt, sim, this.cam.camera, this.state === 'racing' || this.state === 'finished' || this.state === 'countdown');
     this.veg.update(dt, this.cam.camera.position, this.time);
     (this.sky.material as THREE.ShaderMaterial).uniforms.uTime.value = this.time;
+    this.water.update(this.time);
     this.sky.position.copy(this.cam.camera.position);
     _pos.copy(this.cam.camera.position);
     const fwd = new THREE.Vector3();

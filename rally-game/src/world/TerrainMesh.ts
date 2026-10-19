@@ -90,6 +90,14 @@ export class TerrainMesh {
     } else {
       out.lerp(GROUND.rock, smoothstep(0.75, 1.2, slope) * 0.6);
     }
+    // lake shore: muddy sand band, darker below the waterline
+    const L = this.field.lake;
+    if (L && (x - L.x) ** 2 + (z - L.z) ** 2 < (L.r + 20) ** 2) {
+      const h = this.field.heights[k];
+      const shore = 1 - smoothstep(0.4, 2.2, h - L.level);
+      out.lerp(GROUND.shore, shore * 0.85);
+      if (h < L.level) out.multiplyScalar(0.7);
+    }
   }
 
   private buildNear(): void {

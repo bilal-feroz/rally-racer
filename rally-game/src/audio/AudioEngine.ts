@@ -9,7 +9,7 @@ import { SURF_GRASS } from '../world/TerrainField';
  * pulse train is shaped by load (throttle) and then coloured by resonant filters on the main
  * thread graph. Everything is generated — no audio files.
  */
-const ENGINE_WORKLET = /* js */ `
+export const ENGINE_WORKLET = /* js */ `
 class EngineProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {
     return [
@@ -53,7 +53,7 @@ class EngineProcessor extends AudioWorkletProcessor {
       const k = 5.5 + 5 * this.load;
       const p = this.phase;
       const pulse = this.env * Math.exp(-p * k) * (1 - Math.exp(-p * 60));
-      const noise = (this.rand() * 2 - 1) * (0.12 + 0.25 * this.load) * Math.exp(-p * 3);
+      const noise = (this.rand() * 2 - 1) * (0.07 + 0.17 * this.load) * Math.exp(-p * 4);
       let s = pulse + noise * this.env;
       // pop / crackle on overrun
       if (this.pop > 0.001) {
@@ -69,6 +69,65 @@ class EngineProcessor extends AudioWorkletProcessor {
 }
 registerProcessor('engine-processor', EngineProcessor);
 `;
+
+export interface EngineVoice {
+  node: AudioWorkletNode | null;
+  fallback: OscillatorNode[];
+  filter: BiquadFilterNode;
+  gain: GainNode;
+}
+
+/** Builds the engine synth (worklet pulse train + exhaust colouring). Shared by game and tests. */
+export async function createEngineVoice(ctx: BaseAudioContext): Promise<EngineVoice> {
+  const gain = ctx.createGain();
+  gain.gain.value = 0.0;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 1800;
+  filter.Q.value = 0.8;
+  const body = ctx.createBiquadFilter();
+  body.type = 'peaking';
+  body.frequency.value = 140;
+  body.Q.value = 1.2;
+  body.gain.value = 7;
+  const rasp = ctx.createBiquadFilter();
+  rasp.type = 'peaking';
+  rasp.frequency.value = 900;
+  rasp.Q.value = 2;
+  rasp.gain.value = 4;
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 35;
+  const shaper = ctx.createWaveShaper();
+  const curve = new Float32Array(1024);
+  for (let i = 0; i < 1024; i++) {
+    const x = (i / 1023) * 2 - 1;
+    curve[i] = Math.tanh(x * 2.2) / Math.tanh(2.2);
+  }
+  shaper.curve = curve;
+  let node: AudioWorkletNode | null = null;
+  const fallback: OscillatorNode[] = [];
+  try {
+    const url = URL.createObjectURL(new Blob([ENGINE_WORKLET], { type: 'application/javascript' }));
+    await ctx.audioWorklet.addModule(url);
+    node = new AudioWorkletNode(ctx, 'engine-processor', { numberOfInputs: 0, outputChannelCount: [1] });
+    node.connect(hp);
+  } catch {
+    // fallback: two detuned oscillators
+    for (const type of ['sawtooth', 'square'] as OscillatorType[]) {
+      const o = ctx.createOscillator();
+      o.type = type;
+      o.frequency.value = 30;
+      const g = ctx.createGain();
+      g.gain.value = type === 'square' ? 0.15 : 0.25;
+      o.connect(g).connect(hp);
+      o.start();
+      fallback.push(o);
+    }
+  }
+  hp.connect(body).connect(rasp).connect(shaper).connect(filter).connect(gain);
+  return { node, fallback, filter, gain };
+}
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -131,51 +190,12 @@ export class AudioEngine {
     }
 
     // engine chain
-    this.engineGain = ctx.createGain();
-    this.engineGain.gain.value = 0.0;
-    this.engineFilter = ctx.createBiquadFilter();
-    this.engineFilter.type = 'lowpass';
-    this.engineFilter.frequency.value = 1800;
-    this.engineFilter.Q.value = 0.8;
-    const body = ctx.createBiquadFilter();
-    body.type = 'peaking';
-    body.frequency.value = 140;
-    body.Q.value = 1.2;
-    body.gain.value = 7;
-    const rasp = ctx.createBiquadFilter();
-    rasp.type = 'peaking';
-    rasp.frequency.value = 900;
-    rasp.Q.value = 2;
-    rasp.gain.value = 4;
-    const hp = ctx.createBiquadFilter();
-    hp.type = 'highpass';
-    hp.frequency.value = 35;
-    const shaper = ctx.createWaveShaper();
-    const curve = new Float32Array(1024);
-    for (let i = 0; i < 1024; i++) {
-      const x = (i / 1023) * 2 - 1;
-      curve[i] = Math.tanh(x * 2.2) / Math.tanh(2.2);
-    }
-    shaper.curve = curve;
-    try {
-      const url = URL.createObjectURL(new Blob([ENGINE_WORKLET], { type: 'application/javascript' }));
-      await ctx.audioWorklet.addModule(url);
-      this.engineNode = new AudioWorkletNode(ctx, 'engine-processor', { numberOfInputs: 0, outputChannelCount: [1] });
-      this.engineNode.connect(hp);
-    } catch {
-      // fallback: two detuned oscillators
-      for (const type of ['sawtooth', 'square'] as OscillatorType[]) {
-        const o = ctx.createOscillator();
-        o.type = type;
-        o.frequency.value = 30;
-        const g = ctx.createGain();
-        g.gain.value = type === 'square' ? 0.15 : 0.25;
-        o.connect(g).connect(hp);
-        o.start();
-        this.engineFallback.push(o);
-      }
-    }
-    hp.connect(body).connect(rasp).connect(shaper).connect(this.engineFilter).connect(this.engineGain).connect(this.master);
+    const voice = await createEngineVoice(ctx);
+    this.engineNode = voice.node;
+    this.engineFallback = voice.fallback;
+    this.engineFilter = voice.filter;
+    this.engineGain = voice.gain;
+    this.engineGain.connect(this.master);
 
     // gravel rumble
     const gsrc = ctx.createBufferSource();

@@ -32,7 +32,10 @@ export class Effects {
   private readonly skidGeo: THREE.BufferGeometry;
   private readonly skidPos: Float32Array;
   private readonly skidAlpha: Float32Array;
+  private readonly skidBirth: Float32Array;
   private skidNext = 0;
+  private time = 0;
+  private readonly skidMat: THREE.ShaderMaterial;
   private readonly lastMark: (THREE.Vector3 | null)[] = [null, null, null, null];
   private readonly lastSide: THREE.Vector3[] = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
   private readonly _v = new THREE.Vector3();
@@ -110,6 +113,7 @@ export class Effects {
     // ------------------------------------------------------------- skids
     this.skidPos = new Float32Array(MAX_SKID * 4 * 3);
     this.skidAlpha = new Float32Array(MAX_SKID * 4);
+    this.skidBirth = new Float32Array(MAX_SKID * 4).fill(-1e6);
     const idx = new Uint32Array(MAX_SKID * 6);
     for (let i = 0; i < MAX_SKID; i++) {
       const v = i * 4;
@@ -118,7 +122,9 @@ export class Effects {
     this.skidGeo = new THREE.BufferGeometry();
     this.skidGeo.setAttribute('position', new THREE.BufferAttribute(this.skidPos, 3).setUsage(THREE.DynamicDrawUsage));
     this.skidGeo.setAttribute('aAlpha', new THREE.BufferAttribute(this.skidAlpha, 1).setUsage(THREE.DynamicDrawUsage));
+    this.skidGeo.setAttribute('aBirth', new THREE.BufferAttribute(this.skidBirth, 1).setUsage(THREE.DynamicDrawUsage));
     this.skidGeo.setIndex(new THREE.BufferAttribute(idx, 1));
+    // marks fade over ~40 s so the stage doesn't fill with permanent scribbles
     const skidMat = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
@@ -126,17 +132,21 @@ export class Effects {
       polygonOffsetFactor: -4,
       polygonOffsetUnits: -8,
       side: THREE.DoubleSide,
-      uniforms: { uColor: { value: new THREE.Color('#4a3d33') } },
+      uniforms: { uColor: { value: new THREE.Color('#4a3d33') }, uTime: { value: 0 } },
       vertexShader: /* glsl */ `
-        attribute float aAlpha; varying float vA;
-        #include <fog_pars_vertex>
-        void main() { vA = aAlpha; vec4 mvPosition = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mvPosition; }`,
+        attribute float aAlpha; attribute float aBirth; uniform float uTime; varying float vA;
+        void main() {
+          float age = uTime - aBirth;
+          vA = aAlpha * (1.0 - smoothstep(25.0, 45.0, age));
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
       fragmentShader: /* glsl */ `
         uniform vec3 uColor; varying float vA;
         void main() { if (vA < 0.01) discard; gl_FragColor = vec4(uColor, vA);
         #include <colorspace_fragment>
         }`,
     });
+    this.skidMat = skidMat;
     const skidMesh = new THREE.Mesh(this.skidGeo, skidMat);
     skidMesh.frustumCulled = false;
     skidMesh.renderOrder = 3;
@@ -178,6 +188,8 @@ export class Effects {
 
   update(dt: number, sim: VehicleSim, cam: THREE.Camera, active: boolean): void {
     void cam;
+    this.time += dt;
+    this.skidMat.uniforms.uTime.value = this.time;
     const speed = sim.speed;
     if (active && dt > 0) {
       for (let k = 0; k < 4; k++) {
@@ -278,6 +290,10 @@ export class Effects {
     set(3, p, side, 1);
     const a = 0.55 * strength;
     this.skidAlpha.fill(a, i * 4, i * 4 + 4);
+    this.skidBirth.fill(this.time, i * 4, i * 4 + 4);
+    const ba = this.skidGeo.getAttribute('aBirth') as THREE.BufferAttribute;
+    ba.addUpdateRange(i * 4, 4);
+    ba.needsUpdate = true;
     const pa = this.skidGeo.getAttribute('position') as THREE.BufferAttribute;
     const aa = this.skidGeo.getAttribute('aAlpha') as THREE.BufferAttribute;
     pa.addUpdateRange(i * 12, 12);

@@ -170,18 +170,25 @@ export class CarModel {
   readonly tailMat: THREE.MeshLambertMaterial;
   readonly headMat: THREE.MeshLambertMaterial;
   readonly flame: THREE.Mesh;
-  readonly paint: THREE.MeshToonMaterial;
+  readonly paint: THREE.Material;
   private outlineMat: THREE.ShaderMaterial;
   private readonly cgY = 0.48;
 
-  constructor() {
+  constructor(envMap: THREE.Texture | null = null) {
     const grad = makeToonGradient();
-    this.paint = new THREE.MeshToonMaterial({ color: '#c3141c', gradientMap: grad });
-    const paintDark = new THREE.MeshToonMaterial({ color: '#8f0d14', gradientMap: grad });
+    // glossy clear-coated paint reflecting the sky; falls back to toon if no env map
+    this.paint = envMap
+      ? new THREE.MeshPhysicalMaterial({ color: '#bf0f18', roughness: 0.42, metalness: 0.0, clearcoat: 0.65, clearcoatRoughness: 0.14, envMap, envMapIntensity: 0.45 })
+      : new THREE.MeshToonMaterial({ color: '#c3141c', gradientMap: grad });
+    const paintDark = envMap
+      ? new THREE.MeshPhysicalMaterial({ color: '#8f0d14', roughness: 0.45, clearcoat: 0.6, clearcoatRoughness: 0.2, envMap, envMapIntensity: 0.6 })
+      : new THREE.MeshToonMaterial({ color: '#8f0d14', gradientMap: grad });
     const black = new THREE.MeshToonMaterial({ color: '#1d1d21', gradientMap: grad });
     const trim = new THREE.MeshToonMaterial({ color: '#2b2b30', gradientMap: grad });
     const white = new THREE.MeshToonMaterial({ color: '#f2f0ea', gradientMap: grad });
-    const glass = new THREE.MeshPhongMaterial({ color: '#1a2741', specular: '#7a95c0', shininess: 90 });
+    const glass = envMap
+      ? new THREE.MeshPhysicalMaterial({ color: '#0f1a2e', roughness: 0.06, metalness: 0.0, clearcoat: 1, envMap, envMapIntensity: 1.25 })
+      : new THREE.MeshPhongMaterial({ color: '#1a2741', specular: '#7a95c0', shininess: 90 });
     const chrome = new THREE.MeshPhongMaterial({ color: '#b9bec6', specular: '#ffffff', shininess: 120 });
     this.tailMat = new THREE.MeshLambertMaterial({ color: '#ff5a2a', emissive: '#ff2a10', emissiveIntensity: 0.55 });
     this.headMat = new THREE.MeshLambertMaterial({ color: '#fffbe8', emissive: '#fff3c4', emissiveIntensity: 0.35 });
@@ -303,7 +310,7 @@ export class CarModel {
     add(box(1.0, 0.13, 0.03, 0, 0.5, 2.095), black, false, false);
     for (const side of [1, -1]) {
       add(box(0.3, 0.12, 0.03, side * 0.55, 0.53, 2.093), this.headMat, false, false);
-      add(box(0.16, 0.12, 0.04, side * 0.26, 0.24, 2.11), this.headMat, false, false);
+      add(box(0.18, 0.09, 0.04, side * 0.3, 0.4, 2.16), this.headMat, false, false);
     }
 
     // ------------------------------------------------------------ rear wing

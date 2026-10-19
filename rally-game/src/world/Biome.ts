@@ -3,9 +3,9 @@ import { Noise2D, smoothstep } from '../core/math';
 
 /** Shared ground palette + vegetation density functions (used by terrain colouring and tree placement). */
 export const GROUND = {
-  grassA: new THREE.Color('#7da345'),
-  grassB: new THREE.Color('#5f8e3a'),
-  grassDry: new THREE.Color('#a3a650'),
+  grassA: new THREE.Color('#7a9e48'),
+  grassB: new THREE.Color('#5f8a40'),
+  grassDry: new THREE.Color('#9ea257'),
   forestFloor: new THREE.Color('#5b7134'),
   forestDark: new THREE.Color('#47602d'),
   sand: new THREE.Color('#d9bf95'),

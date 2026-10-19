@@ -2,7 +2,7 @@ import { clamp, DEG, lerp } from '../core/math';
 import type { StageDesign } from './stageDesign';
 
 /** Loose-gravel shoulder beyond the driven surface (m). */
-export const SHOULDER = 2.4;
+export const SHOULDER = 2.0;
 /** Extra road-ribbon skirt that blends into terrain (m). */
 export const SKIRT = 2.2;
 /** Crown height of road centre above its edges (m). */

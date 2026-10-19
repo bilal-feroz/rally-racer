@@ -88,7 +88,7 @@ export class Game {
   manual = false;
   autopilotOn = false;
   inputOverride: DriveInput | null = null;
-  private readonly heldInput: DriveInput = { throttle: 0, brake: 1, steer: 0, handbrake: 1 };
+  private readonly heldInput: DriveInput = { throttle: 0, brake: 0, steer: 0, handbrake: 1 };
   private fpsFrames = 0;
   private fpsTime = 0;
   fps = 0;
@@ -167,7 +167,20 @@ export class Game {
       },
     };
     this.sim = new VehicleSim(this.field, collision);
-    this.car = new CarModel();
+    const tmpObs: Obstacle[] = [];
+    this.cam.clearance = (x: number, z: number) => {
+      const n = collision.query(x, z, 10, tmpObs);
+      let m = 10;
+      for (let i = 0; i < n; i++) m = Math.min(m, Math.hypot(tmpObs[i].x - x, tmpObs[i].z - z) - tmpObs[i].r);
+      return m;
+    };
+    // sky reflections for the car paint and glass
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    const envScene = new THREE.Scene();
+    envScene.add(createSky(true));
+    const envRT = pmrem.fromScene(envScene, 0, 0.1, 3000);
+    pmrem.dispose();
+    this.car = new CarModel(envRT.texture);
     scene.add(this.car.root, this.car.blob);
     this.fx = new Effects(scene, this.field);
     this.audio = new AudioEngine(this.opts.noAudio);
@@ -192,7 +205,7 @@ export class Game {
 
   // ------------------------------------------------------------------ flow
   resetToStart(): void {
-    const f = this.track.frameAt(this.track.startS - 6);
+    const f = this.track.frameAt(this.track.startS - 16);
     this.sim.reset(f.x, f.z, f.heading, 0);
     // settle suspension
     for (let i = 0; i < 240; i++) {
@@ -205,7 +218,7 @@ export class Game {
     this.finishTime = -1;
     this.distance = 0;
     this.recoveries = 0;
-    this.progressS = this.track.startS - 6;
+    this.progressS = this.track.startS - 16;
     this.prevProgressS = this.progressS;
     this.lastSafeS = this.progressS;
     this.offTrackTime = this.upsideDownTime = this.wrongWayTime = 0;
@@ -258,7 +271,7 @@ export class Game {
   recover(auto = false): void {
     if (this.state !== 'racing' && this.state !== 'countdown') return;
     const T = this.track;
-    const s = Math.max(T.startS - 6, Math.min(this.lastSafeS - 8, T.finishS - 5));
+    const s = Math.max(T.startS - 16, Math.min(this.lastSafeS - 8, T.finishS - 5));
     const f = T.frameAt(s);
     this.sim.reset(f.x, f.z, f.heading, 9);
     this.prevPos.copy(this.sim.pos);

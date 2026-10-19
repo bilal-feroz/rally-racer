@@ -171,7 +171,7 @@ export class Vegetation implements CollisionWorld {
           const hw = T.hwAt(p.s);
           const u = Math.abs(p.d) - (hw + SHOULDER);
           if (u < 2.2) continue;
-          if (u < 11) prob = Math.min(prob, 0.1 + 0.35 * forest);
+          if (u < 11) prob = Math.min(prob, 0.16 + 0.5 * forest);
           const k = T.kappaAt(p.s);
           if (Math.sign(p.d) === Math.sign(k) && Math.abs(k) > 1 / 160 && u < 28) prob *= 0.15;
           if (p.s < T.startS + 60 || Math.abs(p.s - T.finishS) < 50) prob *= 0.4;

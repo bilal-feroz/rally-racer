@@ -29,6 +29,8 @@ export class ChaseCamera {
   private readonly cine = new THREE.Vector3();
   private cineS = -1;
   private readonly look = new THREE.Vector3();
+  /** returns distance to the nearest obstacle (set by the game) */
+  clearance: ((x: number, z: number) => number) | null = null;
 
   constructor(aspect: number) {
     this.camera = new THREE.PerspectiveCamera(60, aspect, 0.25, 9000);
@@ -62,8 +64,9 @@ export class ChaseCamera {
     if (impact > 0.15) this.addShake(impact * dt * 6);
 
     if (this.mode === 'hood') {
-      cam.position.copy(carPos).addScaledVector(_up, 0.62).addScaledVector(_fwd, 0.35);
-      this.look.copy(cam.position).addScaledVector(_fwd, 20).addScaledVector(_up, -0.6);
+      // bonnet cam: just ahead of the windscreen, above the hood (outside the cabin shell)
+      cam.position.copy(carPos).addScaledVector(_up, 0.53).addScaledVector(_fwd, 1.08);
+      this.look.copy(cam.position).addScaledVector(_fwd, 20).addScaledVector(_up, -0.35);
       cam.up.copy(_up).lerp(_v.set(0, 1, 0), 0.6).normalize();
       cam.lookAt(this.look);
       this.applyFov(dt, 72 + 8 * smoothstep(15, 55, vh));
@@ -75,13 +78,27 @@ export class ChaseCamera {
     if (this.mode === 'cinematic') {
       const s = sim.trackHint >= 0 ? sim.trackHint * track.ds : 0;
       if (this.cineS < 0 || s > this.cineS + 35 || s < this.cineS - 220) {
-        this.cineS = Math.min(track.length - 5, s + 110 + Math.random() * 40);
-        const f = track.frameAt(this.cineS);
-        const side = Math.random() < 0.5 ? 1 : -1;
-        const off = f.hw + 7 + Math.random() * 6;
-        const x = f.x + f.lx * off * side;
-        const z = f.z + f.lz * off * side;
-        this.cine.set(x, field.heightAt(x, z) + 2.2 + Math.random() * 2.5, z);
+        // trackside spot with a clear view: on the outside of the upcoming curve, away from trunks
+        let best = -1;
+        let bx = 0;
+        let bz = 0;
+        for (let k = 0; k < 24; k++) {
+          const cs = Math.min(track.length - 5, s + 90 + k * 6);
+          const f = track.frameAt(cs);
+          const side = f.kappa === 0 ? (k % 2 ? 1 : -1) : -Math.sign(f.kappa);
+          const off = f.hw + 5 + (k % 3);
+          const x = f.x + f.lx * off * side;
+          const z = f.z + f.lz * off * side;
+          const clear = this.clearance ? this.clearance(x, z) : 10;
+          const score = Math.min(clear, 8) + Math.abs(f.kappa) * 400;
+          if (score > best) {
+            best = score;
+            bx = x;
+            bz = z;
+            this.cineS = cs;
+          }
+        }
+        this.cine.set(bx, field.heightAt(bx, bz) + 1.8 + Math.random() * 1.5, bz);
       }
       cam.position.copy(this.cine);
       this.look.copy(carPos).addScaledVector(_up, 0.4);
@@ -116,7 +133,7 @@ export class ChaseCamera {
     this.offset.x = damp(this.offset.x, dx, 14, dt);
     this.offset.z = damp(this.offset.z, dz, 14, dt);
     // vertical: soft spring so crests and jumps breathe
-    this.heightOff = damp(this.heightOff, height - clamp(sim.vel.y * 0.05, -0.5, 0.5), 5, dt);
+    this.heightOff = damp(this.heightOff, height - clamp(sim.vel.y * 0.05, -0.5, 0.5), sim.groundedWheels === 0 ? 2.2 : 4, dt);
     cam.position.set(carPos.x + this.offset.x, carPos.y + this.heightOff, carPos.z + this.offset.z);
     const g = field.heightAt(cam.position.x, cam.position.z);
     if (cam.position.y < g + 0.9) cam.position.y = g + 0.9;

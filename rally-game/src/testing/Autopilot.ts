@@ -23,12 +23,13 @@ export class Autopilot {
   lateralTarget = 0;
   private readonly out: DriveInput = { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
   stuckTime = 0;
+  private eInt = 0;
 
   constructor(
     readonly track: Track,
     opts: Partial<AutopilotOptions> = {},
   ) {
-    this.opts = { latAcc: 8.8, brakeDec: 8.0, vMax: 58, aggression: 1, ...opts };
+    this.opts = { latAcc: 8.1, brakeDec: 7.8, vMax: 58, aggression: 1, ...opts };
     this.profile = this.buildProfile();
   }
 
@@ -96,11 +97,13 @@ export class Autopilot {
     let steer = delta / maxSteer;
     // yaw-rate damping: desired yaw rate (left positive) is -v * curvature
     const yawDesired = -v * curvature;
-    steer += clamp((sim.angVel.y - yawDesired) * 0.55, -0.5, 0.5);
+    steer += clamp((sim.angVel.y - yawDesired) * 0.5, -0.45, 0.45);
     // lateral error relative to the current station (positive d = left of line -> steer right)
     const here = T.frameAt(s);
     const dNow = (sim.pos.x - here.x) * here.lx + (sim.pos.z - here.z) * here.lz - this.lateralTarget;
-    steer += clamp(dNow * 0.06, -0.25, 0.25);
+    // PI on lateral error: the integral supplies the tyre slip angle pure pursuit ignores
+    this.eInt = clamp(this.eInt * Math.exp(-0.4 * dt) + dNow * dt, -6, 6);
+    steer += clamp(dNow * 0.07 + this.eInt * 0.025, -0.3, 0.3);
     out.steer = clamp(steer, -1, 1);
 
     // ---- speed control (smooth: avoid abrupt lifts/brake stabs mid-corner)

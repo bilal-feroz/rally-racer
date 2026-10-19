@@ -70,8 +70,8 @@ export class Effects {
       transparent: true,
       depthWrite: false,
       uniforms: {
-        uColor: { value: new THREE.Color('#d9bf98') },
-        uShade: { value: new THREE.Color('#a48d70') },
+        uColor: { value: new THREE.Color('#efe2c6') },
+        uShade: { value: new THREE.Color('#b9a284') },
       },
       vertexShader: /* glsl */ `
         attribute vec3 aOff; attribute float aSize; attribute float aAlpha; attribute float aSeed;
@@ -187,26 +187,30 @@ export class Effects {
           continue;
         }
         const grass = w.surface === SURF_GRASS;
-        const sp = smoothstep(6, 40, speed);
+        const sp = smoothstep(5, 38, speed);
         const slide = w.slide;
-        // rear wheels kick most of the dust
-        const rearF = w.front ? 0.35 : 1;
-        const rate = (sp * 22 + slide * 70) * rearF * (grass ? 0.35 : 1);
+        // rear wheels kick most of the dust; plumes grow with slip
+        const rearF = w.front ? 0.3 : 1;
+        const rate = (sp * 16 + slide * 60) * rearF * (grass ? 0.45 : 1);
         this.spawnAcc[k] += rate * dt;
+        const side = w.left ? 1 : -1;
         while (this.spawnAcc[k] >= 1) {
           this.spawnAcc[k] -= 1;
           const r1 = this.random();
           const r2 = this.random();
           const r3 = this.random();
-          const back = 0.25 + r1 * 0.35;
-          const vx = sim.vel.x * back + (r2 - 0.5) * 2.5 - sim.fwd.x * 1.5;
-          const vz = sim.vel.z * back + (r3 - 0.5) * 2.5 - sim.fwd.z * 1.5;
-          const vy = 0.6 + r1 * 1.4 + slide * 1.2;
-          const life = 1.1 + r2 * 1.4 + slide * 1.2;
-          const s0 = 0.5 + slide * 0.4;
-          const s1 = 2.6 + sp * 2.4 + slide * 3.5 + r3 * 1.5;
-          const a0 = (grass ? 0.12 : 0.22) * (0.5 + 0.5 * sp) + slide * 0.22;
-          this.spawn(w.hit.x - sim.fwd.x * 0.3, w.hit.y + 0.25, w.hit.z - sim.fwd.z * 0.3, vx, vy, vz, life, s0, s1, a0);
+          // dust is dragged along by the car's wake: inherit most of its velocity so plumes
+          // linger just behind the wheels where the chase camera can see them
+          const keep = 0.62 + r1 * 0.22;
+          const throwOut = (0.6 + r2 * 1.6 + slide * 2.5) * side;
+          const vx = sim.vel.x * keep + sim.right.x * -throwOut + (r3 - 0.5) * 1.2;
+          const vz = sim.vel.z * keep + sim.right.z * -throwOut + (r2 - 0.5) * 1.2;
+          const vy = 0.5 + r1 * 1.1 + slide * 1.4;
+          const life = 0.9 + r2 * 1.1 + slide * 1.0;
+          const s0 = 0.35 + slide * 0.35;
+          const s1 = 1.6 + sp * 1.6 + slide * 2.6 + r3 * 1.0;
+          const a0 = (grass ? 0.16 : 0.3) * (0.4 + 0.6 * sp) + slide * 0.35;
+          this.spawn(w.hit.x - sim.fwd.x * 0.45, w.hit.y + 0.15, w.hit.z - sim.fwd.z * 0.45, vx, vy, vz, life, s0, s1, Math.min(0.7, a0));
         }
         // skid marks
         const markStrength = clamp((slide - 0.12) * 1.6, 0, 1) * (grass ? 0.6 : 1);
@@ -215,7 +219,7 @@ export class Effects {
       }
     }
     // integrate particles
-    const drag = Math.exp(-1.6 * dt);
+    const drag = Math.exp(-2.4 * dt);
     let maxIdx = 0;
     for (let i = 0; i < MAX_DUST; i++) {
       if (this.pLife[i] <= 0) {

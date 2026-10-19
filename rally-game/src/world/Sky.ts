@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PALETTE } from './Atmosphere';
 
 /** Stylised sky dome: vivid gradient, sun glow and soft painterly clouds. */
-export function createSky(): THREE.Mesh {
+export function createSky(groundTint = false): THREE.Mesh {
   const P = PALETTE;
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide,
@@ -17,6 +17,8 @@ export function createSky(): THREE.Mesh {
       uSunCol: { value: new THREE.Color('#fff4dc') },
       uFogSun: { value: P.fogSun.clone() },
       uTime: { value: 0 },
+      uGround: { value: new THREE.Color('#3f4a2a') },
+      uGroundMix: { value: groundTint ? 1 : 0 },
     },
     vertexShader: /* glsl */ `
       varying vec3 vDir;
@@ -28,6 +30,8 @@ export function createSky(): THREE.Mesh {
     fragmentShader: /* glsl */ `
       uniform vec3 uZenith, uMid, uHorizon, uSunDir, uSunCol, uFogSun;
       uniform float uTime;
+      uniform vec3 uGround;
+      uniform float uGroundMix;
       varying vec3 vDir;
       float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
       float vnoise(vec2 p) {
@@ -70,6 +74,7 @@ export function createSky(): THREE.Mesh {
           col = mix(col, cloud, cov * fade * 0.92);
         } else {
           col = mix(uHorizon, uHorizon * 0.9, smoothstep(0.0, -0.2, e));
+          col = mix(col, uGround, uGroundMix * smoothstep(0.0, -0.12, e));
         }
         gl_FragColor = vec4(col, 1.0);
         #include <tonemapping_fragment>

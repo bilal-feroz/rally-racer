@@ -209,6 +209,11 @@ export class Game {
 
     this.applyQuality(this.quality, false);
     window.addEventListener('resize', () => this.resize());
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden || this.opts.test) return;
+      if (this.state === 'racing' || this.state === 'countdown') this.pause();
+      else this.audio.setPaused(true);
+    });
     this.resize();
     this.resetToStart();
     progress(1, 'Ready');

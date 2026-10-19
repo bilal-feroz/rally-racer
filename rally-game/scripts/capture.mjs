@@ -59,6 +59,10 @@ await session(async (page) => {
   const r = await tag(page, 'recovery');
   await driveTo(page, r.s0 + 120);
   await save(page, 'uphill-shadows');
+  const j2 = await tag(page, 'jump2');
+  await driveTo(page, j2.s0 - 10);
+  const tj2 = await api(page, () => window.__RALLY__.stepUntil('t.airTime > 0.42', 4, 1 / 60));
+  await save(page, 'jump-2', tj2);
   const f = await tag(page, 'finish');
   await driveTo(page, f.s1 - 6);
   await save(page, 'finish-line');

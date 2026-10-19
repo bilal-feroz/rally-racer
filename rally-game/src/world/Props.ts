@@ -162,7 +162,7 @@ export class Props {
         this.group.add(g);
         this.addObstacle(x, z, 0.45);
         // spectators behind some gates
-        if (gi % 3 === 1 && side === (gi % 2 ? 1 : -1)) this.spectators(f.x + f.lx * (off + 5) * side, f.z + f.lz * (off + 5) * side, f.heading, rnd);
+        if (gi % 3 === 1 && side === (gi % 2 ? 1 : -1)) this.spectators(f.x + f.lx * (off + 5) * side, f.z + f.lz * (off + 5) * side, f.heading, rnd, f.x, f.z);
       }
     });
 
@@ -237,7 +237,7 @@ export class Props {
     for (const s of [T.startS + 20, T.finishS - 10, T.finishS + 25]) {
       const f = T.frameAt(s);
       for (const side of [1, -1]) {
-        this.spectators(f.x + f.lx * (f.hw + 9) * side, f.z + f.lz * (f.hw + 9) * side, f.heading, rnd);
+        this.spectators(f.x + f.lx * (f.hw + 9) * side, f.z + f.lz * (f.hw + 9) * side, f.heading, rnd, f.x, f.z);
       }
     }
   }
@@ -297,45 +297,70 @@ export class Props {
     this.group.add(g);
   }
 
-  private spectators(x: number, z: number, heading: number, rnd: () => number): void {
+  private spectators(x: number, z: number, heading: number, rnd: () => number, faceX?: number, faceZ?: number): void {
     const F = this.field;
-    const jackets = ['#d64545', '#3f7bd6', '#f2b233', '#3fa66b', '#e8e2d6', '#7a4fd0', '#ff7b2e'];
+    const jackets = ['#d64545', '#3f7bd6', '#f2b233', '#3fa66b', '#e8e2d6', '#7a4fd0', '#ff7b2e', '#2f9fae'];
+    const trousers = ['#2e3440', '#39465e', '#4a3b2f', '#1f2328'];
+    const skins = ['#e0b48e', '#c99470', '#8d5a3b', '#f0c9a5'];
+    const hats = ['#c62828', '#f2b233', '#1f2328', '#3f7bd6'];
     const parts: THREE.BufferGeometry[] = [];
-    const colors: THREE.Color[] = [];
     const n = 4 + Math.floor(rnd() * 5);
-    for (let i = 0; i < n; i++) {
-      const px = x + (rnd() - 0.5) * 6;
-      const pz = z + (rnd() - 0.5) * 3;
-      const y = F.heightAt(px, pz);
-      const h = 1.6 + rnd() * 0.25;
-      const body = new THREE.BoxGeometry(0.46, h * 0.5, 0.3);
-      body.translate(px, y + h * 0.55, pz);
-      const legs = new THREE.BoxGeometry(0.36, h * 0.32, 0.24);
-      legs.translate(px, y + h * 0.16, pz);
-      const head = new THREE.IcosahedronGeometry(0.15, 0);
-      head.translate(px, y + h * 0.9, pz);
-      parts.push(body, legs, head);
-      colors.push(new THREE.Color(jackets[Math.floor(rnd() * jackets.length)]), new THREE.Color('#2e3440'), new THREE.Color('#e0b48e'));
-      this.addObstacle(px, pz, 0.35);
-    }
-    // bake vertex colours
-    const colored = parts.map((p, i) => {
-      const g = p.index ? p.toNonIndexed() : p;
-      const c = colors[i];
-      const arr = new Float32Array(g.getAttribute('position').count * 3);
+    const paint = (g: THREE.BufferGeometry, hex: string) => {
+      const ng = g.index ? g.toNonIndexed() : g;
+      const c = new THREE.Color(hex);
+      const arr = new Float32Array(ng.getAttribute('position').count * 3);
       for (let k = 0; k < arr.length; k += 3) {
         arr[k] = c.r;
         arr[k + 1] = c.g;
         arr[k + 2] = c.b;
       }
-      g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
-      g.deleteAttribute('uv');
-      return g;
-    });
-    const merged = mergeGeometries(colored);
-    const mesh = new THREE.Mesh(merged, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+      ng.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+      ng.deleteAttribute('uv');
+      return ng;
+    };
+    // y = base of the box
+    const box = (w: number, h: number, d: number, x: number, y: number, z: number, hex: string) => {
+      const g = new THREE.BoxGeometry(w, h, d);
+      g.translate(x, y + h / 2, z);
+      return paint(g, hex);
+    };
+    // arm hanging from a shoulder pivot, rotated about the body's forward axis
+    const arm = (x: number, shoulderY: number, angle: number, hex: string) => {
+      const g = new THREE.BoxGeometry(0.11, 0.56, 0.13);
+      g.translate(0, -0.28, 0);
+      g.rotateZ(angle);
+      g.translate(x, shoulderY, 0);
+      return paint(g, hex);
+    };
+    for (let i = 0; i < n; i++) {
+      const px = x + (rnd() - 0.5) * 6;
+      const pz = z + (rnd() - 0.5) * 3;
+      const y = F.heightAt(px, pz);
+      const s = 0.92 + rnd() * 0.18;
+      const jacket = jackets[Math.floor(rnd() * jackets.length)];
+      const skin = skins[Math.floor(rnd() * skins.length)];
+      const legs = trousers[Math.floor(rnd() * trousers.length)];
+      const person: THREE.BufferGeometry[] = [];
+      person.push(box(0.15, 0.8, 0.17, 0.11, 0, 0, legs), box(0.15, 0.8, 0.17, -0.11, 0, 0, legs));
+      person.push(box(0.46, 0.6, 0.27, 0, 0.78, 0, jacket));
+      // arms: some wave at the cars
+      const wave = rnd() < 0.35;
+      person.push(arm(0.28, 1.34, 0.1, jacket));
+      person.push(arm(-0.28, 1.34, wave ? Math.PI - 0.4 : -0.1, jacket));
+      const head = new THREE.IcosahedronGeometry(0.14, 0);
+      head.translate(0, 1.54, 0);
+      person.push(paint(head, skin));
+      if (rnd() < 0.5) person.push(box(0.27, 0.09, 0.27, 0, 1.64, 0, hats[Math.floor(rnd() * hats.length)]));
+      const merged = mergeGeometries(person);
+      merged.scale(s, s, s);
+      const yaw = faceX !== undefined && faceZ !== undefined ? Math.atan2(faceX - px, faceZ - pz) : heading + Math.PI / 2;
+      merged.rotateY(yaw + (rnd() - 0.5) * 0.6);
+      merged.translate(px, y, pz);
+      parts.push(merged);
+      this.addObstacle(px, pz, 0.35, 1.8);
+    }
+    const mesh = new THREE.Mesh(mergeGeometries(parts), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
     mesh.castShadow = true;
-    void heading;
     this.group.add(mesh);
   }
 

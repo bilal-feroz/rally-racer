@@ -322,10 +322,19 @@ export class CarModel {
       add(box(0.05, 0.16, 0.12, side * 0.5, 0.99, -1.83), black, false);
     }
 
+    const numTex = textTexture('7', 128, 128, '#f2f0ea', '#151515', 'bold 96px Arial, sans-serif');
+    // livery: white belt-line stripe with an orange pinstripe, door number roundels
+    for (const side of [1, -1]) {
+      add(box(0.012, 0.055, 3.5, side * 0.873, 0.755, -0.05), white, false, false);
+      add(box(0.012, 0.018, 3.5, side * 0.874, 0.715, -0.05), amber, false, false);
+      const door = new THREE.Mesh(new THREE.CircleGeometry(0.17, 20), new THREE.MeshLambertMaterial({ map: numTex }));
+      door.position.set(side * 0.892, 0.52, 0.0);
+      door.rotation.y = side * Math.PI / 2;
+      this.body.add(door);
+    }
     // mirrors
     for (const side of [1, -1]) add(box(0.14, 0.09, 0.12, side * 0.9, 0.95, 0.75), this.paint, true);
     // roof number roundel
-    const numTex = textTexture('7', 128, 128, '#f2f0ea', '#151515', 'bold 96px Arial, sans-serif');
     const roundel = new THREE.Mesh(new THREE.CircleGeometry(0.16, 20), new THREE.MeshLambertMaterial({ map: numTex }));
     roundel.rotation.x = -Math.PI / 2;
     roundel.rotation.z = Math.PI;

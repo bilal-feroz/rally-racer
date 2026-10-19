@@ -138,7 +138,8 @@ export class ChaseCamera {
     this.heightOff = damp(this.heightOff, height - clamp(sim.vel.y * 0.05, -0.5, 0.5), sim.groundedWheels === 0 ? 2.2 : 4, dt);
     // vertical follow lags while airborne so jumps visibly lift the car in frame
     if (!this.init) this.followY = carPos.y;
-    this.followY = damp(this.followY, carPos.y, sim.groundedWheels === 0 ? 1.6 : 9, dt);
+    // stay low on take-off so the car visibly climbs in frame; catch up quickly after landing
+    this.followY = damp(this.followY, carPos.y, sim.groundedWheels === 0 ? 0.7 : sim.airTime === 0 && sim.lastAirTime > 0.3 ? 5 : 9, dt);
     cam.position.set(carPos.x + this.offset.x, this.followY + this.heightOff, carPos.z + this.offset.z);
     const g = field.heightAt(cam.position.x, cam.position.z);
     if (cam.position.y < g + 0.9) cam.position.y = g + 0.9;

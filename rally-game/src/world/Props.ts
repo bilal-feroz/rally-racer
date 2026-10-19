@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mulberry32 } from '../core/math';
+import { windUniform } from './Vegetation';
 import { SHOULDER, type Track } from '../track/Track';
 import type { Obstacle } from '../vehicle/VehicleSim';
 import type { TerrainField } from './TerrainField';
@@ -68,6 +69,30 @@ function bannerTexture(text: string, checker: boolean): THREE.CanvasTexture {
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.fillText(text, 512, 66);
+  });
+}
+
+function flagTexture(kind: string): THREE.CanvasTexture {
+  return canvasTex(96, 64, (g) => {
+    if (kind === 'chequer') {
+      for (let y = 0; y < 4; y++)
+        for (let x = 0; x < 6; x++) {
+          g.fillStyle = (x + y) % 2 ? '#f4f1ea' : '#16181d';
+          g.fillRect(x * 16, y * 16, 16, 16);
+        }
+    } else if (kind === 'stage') {
+      g.fillStyle = '#ff6b1a';
+      g.fillRect(0, 0, 96, 64);
+      g.fillStyle = '#f4f1ea';
+      g.fillRect(0, 24, 96, 16);
+    } else {
+      g.fillStyle = kind;
+      g.fillRect(0, 0, 96, 64);
+      g.fillStyle = 'rgba(255,255,255,0.85)';
+      g.beginPath();
+      g.arc(48, 32, 13, 0, Math.PI * 2);
+      g.fill();
+    }
   });
 }
 
@@ -211,6 +236,27 @@ export class Props {
     // ---------------------------------------------------------------- start / finish arches
     this.arch(T.startS, bannerTexture('BLACK PINE RIDGE  ·  START', false), dark);
     this.arch(T.finishS, bannerTexture('FINISH', true), dark);
+    // flags: chequered at the finish, stage colours at the start and at every other gate
+    const chequer = flagTexture('chequer');
+    const stage = flagTexture('stage');
+    const plain = ['#d8262c', '#2f6fd0', '#f2b233', '#3fa66b'].map((c) => flagTexture(c));
+    for (const [s, tex] of [
+      [T.startS, stage],
+      [T.finishS, chequer],
+    ] as const) {
+      const f = T.frameAt(s);
+      for (const side of [1, -1]) {
+        const off = f.hw + SHOULDER + 3.2;
+        this.flag(f.x + f.lx * off * side, f.z + f.lz * off * side, 5.2, tex, f.heading);
+      }
+    }
+    T.gates.forEach((s, gi) => {
+      if (gi % 2 === 1 || gi === T.gates.length - 1) return;
+      const f = T.frameAt(s + 3);
+      const side = gi % 4 === 0 ? 1 : -1;
+      const off = f.hw + SHOULDER + 3.6;
+      this.flag(f.x + f.lx * off * side, f.z + f.lz * off * side, 4.2, plain[gi % plain.length], f.heading);
+    });
 
     // ---------------------------------------------------------------- chevron boards at tight corners
     const chevTex = chevronTexture();
@@ -280,6 +326,43 @@ export class Props {
         this.spectators(f.x + f.lx * (f.hw + 9) * side, f.z + f.lz * (f.hw + 9) * side, f.heading, rnd, f.x, f.z);
       }
     }
+  }
+
+  private flagMat = new Map<THREE.Texture, THREE.MeshLambertMaterial>();
+
+  /** Pole + cloth that ripples in the shared wind uniform. */
+  private flag(x: number, z: number, height: number, tex: THREE.Texture, heading: number): void {
+    const F = this.field;
+    const y = F.heightAt(x, z);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, height, 6), new THREE.MeshLambertMaterial({ color: '#cfd2d8' }));
+    pole.position.set(x, y + height / 2, z);
+    pole.castShadow = true;
+    let mat = this.flagMat.get(tex);
+    if (!mat) {
+      mat = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
+      mat.onBeforeCompile = (sh) => {
+        sh.uniforms.uWind = windUniform;
+        sh.vertexShader = sh.vertexShader
+          .replace('#include <common>', '#include <common>\nuniform float uWind;')
+          .replace(
+            '#include <begin_vertex>',
+            `#include <begin_vertex>
+float k = position.x + 0.6; // 0 at the pole, 1.2 at the free end
+transformed.z += sin(uWind * 6.0 - k * 5.0) * 0.09 * k + sin(uWind * 9.7 - k * 8.0) * 0.03 * k;
+transformed.y += sin(uWind * 4.0 - k * 3.0) * 0.03 * k;`,
+          );
+      };
+      this.flagMat.set(tex, mat);
+    }
+    const geo = new THREE.PlaneGeometry(1.2, 0.75, 10, 3);
+    const cloth = new THREE.Mesh(geo, mat);
+    cloth.position.set(0.6, height / 2 - 0.42, 0);
+    cloth.castShadow = true;
+    pole.add(cloth);
+    // cloth streams across the road direction
+    pole.rotation.y = heading + Math.PI / 2;
+    this.group.add(pole);
+    this.addObstacle(x, z, 0.08, height);
   }
 
   private key(ix: number, iz: number): number {

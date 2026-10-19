@@ -162,3 +162,30 @@ Test environment for every run: Windows 11, RTX 3050 Laptop GPU (ANGLE/D3D11), R
 - `portrait-compare` now matches the reference: horizon at about 45%, car centre at about 60%, about 33% of frame width.
 - The banked-corner portrait reads like the reference's "banked corners" frame.
 - 11/11 tests pass on both the dev server and the production build. The deterministic finish was 90.716 s on both.
+
+## Iteration 8: dramatic jump, readable airtime, real spectators, livery
+- **Evidence:** in `jump.png` the car didn't read as airborne. The chase cam rose with it.
+- **Changes**
+  - The second jump is bigger: about 1 s of air and 1.3 m clearance, measured.
+  - The camera's vertical follow slows to k=0.7 on take-off and catches up after landing. The car now visibly climbs in frame (`.cache/jump2-test.png`).
+  - The longer segment shifted downstream geometry, and the autopilot spun in flow2. I opened flow2 to R=230; it is still taken at 101 mph. The clean run is now 91.6 s.
+- **Spectators**
+  - The first version was broken: legs half underground and heads floating, because the helper treated `y` as the centre.
+  - Rebuilt base-anchored: legs, jacket torso, shoulder-pivot arms (35% wave), heads and caps, all facing the road.
+- **Livery:** a white/orange belt stripe and door number roundels. The roundel was half-buried in the body bulge, so I moved it out to x=0.892.
+- **Tab handling:** the game auto-pauses when the tab is hidden.
+
+## Iteration 9: rally set dressing (from the user's 16:9 screenshot + reference)
+- Red/white spectator tape on posts in front of every crowd.
+- Round hay bales on the outside of both hairpins.
+- Log piles.
+- The water tower moved inside the banked hairpin.
+- All footprints are reserved before tree scattering.
+- **Verified in close-ups:** tape sag, bales at the apex, logs by the start.
+
+## Iteration 10: flags + title showroom
+- The brief asked for "occasional flags". These are wind-animated cloth flags (vertex shader on the shared wind uniform): chequered at the finish, orange/white at the start, and coloured at alternate gates.
+- **Title showroom**
+  - The camera slowly orbits the parked car, with the menu card on the left and the car framed in the right half.
+  - The first attempt aimed the wrong way (my perpendicular sign was flipped) and hid the car behind the card. Fixed, verified in `screenshots/ui-title.png`.
+- 11/11 tests pass. The clean autopilot run is 91.6 s.

@@ -24,6 +24,9 @@ export class ChaseCamera {
   private pitchLook = 0;
   private turnLook = 0;
   private followY = 0;
+  /** title-screen orbit */
+  showroom = false;
+  private orbitAngle = 0;
   private init = false;
   private shakeAmp = 0;
   private shakeT = 0;
@@ -65,6 +68,26 @@ export class ChaseCamera {
     const impact = Math.max(sim.landingImpact * 0.5, sim.collisionImpact);
     if (impact > 0.15) this.addShake(impact * dt * 6);
 
+    if (this.showroom) {
+      // slow orbit around the parked car behind the title menu
+      this.orbitAngle += dt * 0.12;
+      const r = 8.4;
+      const a = Math.atan2(_fwd.x, _fwd.z) + Math.PI * 0.72 + Math.sin(this.orbitAngle) * 0.9;
+      cam.position.set(carPos.x + Math.sin(a) * r, carPos.y + 1.7, carPos.z + Math.cos(a) * r);
+      const g = field.heightAt(cam.position.x, cam.position.z);
+      if (cam.position.y < g + 1.0) cam.position.y = g + 1.0;
+      cam.up.set(0, 1, 0);
+      // aim left of the car so it sits in the right half, clear of the title card
+      const vx = carPos.x - cam.position.x;
+      const vz = carPos.z - cam.position.z;
+      const vl = Math.hypot(vx, vz) || 1;
+      const shift = this.portrait ? 0 : 1.9;
+      this.look.set(carPos.x + (vz / vl) * shift, carPos.y + 0.45, carPos.z + (-vx / vl) * shift);
+      cam.lookAt(this.look);
+      this.applyFov(dt, 40);
+      this.init = false;
+      return;
+    }
     if (this.mode === 'hood') {
       // bonnet cam: just ahead of the windscreen, above the hood (outside the cabin shell)
       cam.position.copy(carPos).addScaledVector(_up, 0.56).addScaledVector(_fwd, 1.3);

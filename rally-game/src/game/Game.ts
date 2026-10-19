@@ -594,6 +594,7 @@ export class Game {
     // contact shadow blob: ground under the car
     const gs = this.field.sample(_pos.x, _pos.z, sim.trackHint, this.blobSample);
     this.car.placeBlob(_pos.x, gs.h, _pos.z, sim.heading, gs.nx, gs.ny, gs.nz, _pos.y - gs.h - 0.48);
+    this.cam.showroom = this.state === 'title';
     this.cam.update(dt, sim, _pos, _quat, this.field, this.track);
     this.fx.update(dt, sim, this.cam.camera, this.state === 'racing' || this.state === 'finished' || this.state === 'countdown');
     this.veg.update(dt, this.cam.camera.position, this.time);

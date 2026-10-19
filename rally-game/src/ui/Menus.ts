@@ -45,7 +45,7 @@ export class Menus {
     private readonly game: Game,
   ) {
     // title
-    this.title = h('div', 'screen hidden');
+    this.title = h('div', 'screen title-screen hidden');
     const tc = h('div', 'card');
     tc.append(h('h1', 'title', 'TIMBERLINE<br><span>RALLY</span>'));
     tc.append(h('div', 'subtitle', 'Stage 1 · Black Pine Ridge · 20 gates · hardpack'));

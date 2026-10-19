@@ -518,3 +518,24 @@ body.test-mode *::before,
 body.test-mode *::after {
   transition: none !important;
 }
+
+/* title: card on the left, the car orbits in the right half */
+.screen.title-screen {
+  justify-content: flex-start;
+  padding-left: 6%;
+  background: linear-gradient(90deg, rgba(6, 10, 16, 0.55) 0%, rgba(6, 10, 16, 0.15) 45%, rgba(6, 10, 16, 0) 70%);
+}
+
+@media (max-aspect-ratio: 1/1) {
+  .screen.title-screen {
+    justify-content: center;
+    padding-left: 0;
+    align-items: flex-end;
+    padding-bottom: 4%;
+  }
+}
+
+body.portrait-preview .screen.title-screen {
+  justify-content: center;
+  padding-left: 0;
+}

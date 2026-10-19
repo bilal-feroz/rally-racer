@@ -9,7 +9,7 @@ const geo = await page.evaluate(({ s0, secs }) => {
   return rows;
 }, { s0, secs });
 console.log(geo.join('\n'));
-await page.evaluate(({ s0, v }) => { const R = window.__RALLY__; R.setManual(true); R.teleport(s0, 0, v); R.setAutopilot(true); }, { s0, v });
+await page.evaluate(({ s0, v, dig }) => { const R = window.__RALLY__; R.setManual(true); R.teleport(s0, 0, v); R.setAutopilot(true, 1, dig); }, { s0, v, dig: process.env.DIGITAL === '1' });
 for (let t = 0; t < secs; t += 0.25) {
   const tel = await page.evaluate(() => window.__RALLY__.step(0.25));
   console.log(`t=${t.toFixed(2)} s=${tel.s.toFixed(0)} d=${tel.d.toFixed(2)} mph=${tel.mph.toFixed(0)} g=${tel.gear} gr=${tel.grounded} slip=${tel.bodySlipDeg.toFixed(1)} steer=${tel.steerAngleDeg.toFixed(1)} roll=${tel.rollDeg.toFixed(1)} comp=${tel.compression.join('/')} slide=${tel.slide.join('/')} surf=${tel.surfaces.join('')}`);

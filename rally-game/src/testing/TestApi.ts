@@ -50,9 +50,10 @@ export function installTestApi(game: Game): void {
     setInput: (inp: Partial<DriveInput> | null) => {
       game.inputOverride = inp ? { throttle: 0, brake: 0, steer: 0, handbrake: 0, ...inp } : null;
     },
-    setAutopilot: (on: boolean, aggression = 1) => {
+    setAutopilot: (on: boolean, aggression = 1, digital = false) => {
       game.autopilotOn = on;
       game.autopilot.opts.aggression = aggression;
+      game.autopilot.opts.digital = digital;
     },
     setLateralTarget: (d: number) => {
       game.autopilot.lateralTarget = d;

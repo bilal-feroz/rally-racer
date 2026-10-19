@@ -132,6 +132,31 @@ const report = await page.evaluate(() => {
   run(3, { throttle: 1, brake: 0, steer: 0.8, handbrake: 0 }, () => (poPeak = Math.max(poPeak, Math.abs(sim.bodySlip))));
   out.powerOversteer = { peakSlipDeg: +((poPeak * 180) / Math.PI).toFixed(1), wheelspin: +sim.wheelspin.toFixed(2), speed: +sim.speed.toFixed(1) };
 
+  // 9. keyboard full-lock hold then release (the classic way people over-drive on keys)
+  out.keyboardLock = [];
+  for (const v of [25, 35, 45]) {
+    reset(v);
+    let maxSlip = 0;
+    let lat = 0;
+    run(1.2, cruise(v, 1), () => {
+      maxSlip = Math.max(maxSlip, Math.abs(sim.bodySlip));
+      lat = Math.max(lat, Math.abs(latAcc()));
+    });
+    let settle = -1;
+    run(2.5, cruise(v, 0), (t) => {
+      maxSlip = Math.max(maxSlip, Math.abs(sim.bodySlip));
+      if (settle < 0 && Math.abs(sim.bodySlip) < 0.05 && Math.abs(sim.angVel.y) < 0.1) settle = t;
+    });
+    out.keyboardLock.push({ v, maxSlipDeg: +((maxSlip * 180) / Math.PI).toFixed(1), maxLatG: +(lat / 9.81).toFixed(2), settleAfterRelease: +settle.toFixed(2), endSpeed: +sim.speed.toFixed(1) });
+  }
+  // 10. keyboard flick: full left 0.4 s then full right 0.6 s (S-bend reversal) at 40 m/s
+  reset(40);
+  let flickMax = 0;
+  run(0.4, cruise(40, -1), () => (flickMax = Math.max(flickMax, Math.abs(sim.bodySlip))));
+  run(0.6, cruise(40, 1), () => (flickMax = Math.max(flickMax, Math.abs(sim.bodySlip))));
+  run(2.0, cruise(40, 0), () => (flickMax = Math.max(flickMax, Math.abs(sim.bodySlip))));
+  out.keyboardFlick40 = { maxSlipDeg: +((flickMax * 180) / Math.PI).toFixed(1), endSlipDeg: +((sim.bodySlip * 180) / Math.PI).toFixed(1), endYaw: +sim.angVel.y.toFixed(2) };
+
   // 8. straight line stability at 55 m/s with small steer pulses
   reset(55);
   let maxYaw = 0;

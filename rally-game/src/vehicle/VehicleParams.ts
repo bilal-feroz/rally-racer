@@ -4,7 +4,7 @@ import { DEG } from '../core/math';
 export const CAR = {
   mass: 1180,
   /** body-frame inertia: pitch (x), yaw (y), roll (z) */
-  inertia: { x: 1650, y: 1750, z: 520 },
+  inertia: { x: 1650, y: 2000, z: 520 },
   gravity: 9.81,
 
   // geometry (relative to centre of gravity)
@@ -41,7 +41,7 @@ export const CAR = {
   /** rear tyres slide a bit earlier for a drifty balance */
   rearGrip: 0.97,
   /** rear grip factor at high speed */
-  rearGripHigh: 1.05,
+  rearGripHigh: 1.1,
   /** longitudinal share in friction ellipse */
   ellipseLong: 0.82,
   loadSensitivity: 0.09,
@@ -89,8 +89,12 @@ export const CAR = {
   steerFadeSpeed: 46,
   steerRate: 4.2,
   steerReturnRate: 6.5,
-  countersteerGain: 0.62,
-  countersteerMax: 22 * DEG,
+  countersteerGain: 0.5,
+  countersteerMax: 16 * DEG,
+  /** body slip beyond which the drift stabiliser engages (rad) */
+  stabiliseSlip: 20 * DEG,
+  /** stabiliser yaw torque per rad of excess slip (N m / rad) */
+  stabiliseGain: 30000,
 
   // body collision box (for ground penalty contacts)
   body: { halfW: 0.84, front: 2.02, rear: -2.0, low: -0.22, high: 0.78 },

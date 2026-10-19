@@ -222,7 +222,8 @@ export class VehicleSim {
     const P = this.P;
     const L = P.frontAxleZ - P.rearAxleZ;
     const geom = (L * P.muRoad * P.gravity) / (v * v + 4);
-    const base = 8.6 * DEG * (1 - 0.18 * smoothstep(30, 60, v));
+    // high-speed lock is limited so a full keyboard tap at 100+ mph can't snap the car around
+    const base = (8.6 + (4.2 - 8.6) * smoothstep(18, 50, v)) * DEG;
     return clamp(base + geom, base, P.maxSteerLow);
   }
 
@@ -243,7 +244,8 @@ export class VehicleSim {
     // ---------------------------------------------------------------- steering
     const target = clamp(inp.steer, -1, 1);
     const towardCentre = Math.abs(target) < Math.abs(this.steerInput) && Math.sign(target) === Math.sign(this.steerInput);
-    const rate = towardCentre || target === 0 ? P.steerReturnRate : P.steerRate;
+    const hiSpeed = smoothstep(15, 45, Math.abs(this.forwardSpeed));
+    const rate = (towardCentre || target === 0 ? P.steerReturnRate : P.steerRate) * (1 - 0.4 * hiSpeed);
     const ds = target - this.steerInput;
     this.steerInput += clamp(ds, -rate * dt, rate * dt);
     const vAbs = Math.abs(vf);
@@ -509,6 +511,18 @@ export class VehicleSim {
     }
     this.wheelspin = drivenCount > 0 ? spinSum / drivenCount : 0;
     for (const w of this.wheels) w.spinAngle += w.angVel * dt;
+
+    // ---------------------------------------------------------------- drift stabiliser (arcade assist)
+    // Beyond ~25 deg of body slip at speed, add a yaw torque that pulls the nose back toward the
+    // direction of travel. Drifts stay big and playful; unintended spins become rare.
+    if (grounded >= 2 && this.speed > 9 && inp.handbrake < 0.5 && vf > 0) {
+      const ex = Math.abs(this.bodySlip) - P.stabiliseSlip;
+      if (ex > 0) {
+        const k = P.stabiliseGain * smoothstep(9, 30, this.speed);
+        // beta > 0: velocity to the right of the nose -> yaw right (negative about +Y)
+        this.torqueAcc.addScaledVector(this.up, -Math.sign(this.bodySlip) * k * Math.min(ex, 0.6));
+      }
+    }
 
     // ---------------------------------------------------------------- aero
     const v2 = this.speed * this.speed;

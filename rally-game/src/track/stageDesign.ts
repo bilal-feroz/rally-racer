@@ -43,7 +43,7 @@ export const STAGE: StageDesign = {
     { kind: 's', len: 250, rise: -7 },
     { kind: 'a', r: 240, ang: -36, rise: -2, bank: 4, tag: 'sweeper' },
     { kind: 's', len: 100, rise: 3 },
-    { kind: 's', len: 70, rise: -5, jump: { at: 0.05, h: 1.5, la: 32, ld: 26 }, tag: 'jump1' },
+    { kind: 's', len: 70, rise: -5, jump: { at: 0.05, h: 1.15, la: 30, ld: 24 }, tag: 'jump1' },
     { kind: 'a', r: 330, ang: 30, rise: -15, bank: 3, tag: 'vista' },
     { kind: 's', len: 120, rise: -11 },
     { kind: 'a', r: 78, ang: 62, rise: -2, bank: 6, tag: 's1' },

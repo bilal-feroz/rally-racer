@@ -11,6 +11,8 @@ export interface AutopilotOptions {
   vMax: number;
   /** multiplier on everything (0.5 = cautious) */
   aggression: number;
+  /** emulate a keyboard player: steer/throttle/brake quantised to on/off taps */
+  digital: boolean;
 }
 
 /**
@@ -24,12 +26,14 @@ export class Autopilot {
   private readonly out: DriveInput = { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
   stuckTime = 0;
   private eInt = 0;
+  private digitalSteer = 0;
+  private tapPhase = 0;
 
   constructor(
     readonly track: Track,
     opts: Partial<AutopilotOptions> = {},
   ) {
-    this.opts = { latAcc: 8.1, brakeDec: 7.8, vMax: 58, aggression: 1, ...opts };
+    this.opts = { latAcc: 8.1, brakeDec: 7.8, vMax: 58, aggression: 1, digital: false, ...opts };
     this.profile = this.buildProfile();
   }
 
@@ -123,6 +127,18 @@ export class Autopilot {
       out.brake = clamp(-err * 0.2, 0, cornering ? 0.45 : 1);
     }
     out.handbrake = 0;
+    if (this.opts.digital) {
+      // key taps: hysteresis so it behaves like a person feathering A/D
+      // hold A/D while the demand is clear, release when it fades (how people steer on keys)
+      const st = clamp(out.steer, -1, 1);
+      const held = this.digitalSteer;
+      if (held === 0) this.digitalSteer = st > 0.25 ? 1 : st < -0.25 ? -1 : 0;
+      else if (Math.sign(st) !== held || Math.abs(st) < 0.1) this.digitalSteer = 0;
+      out.steer = this.digitalSteer;
+      void this.tapPhase;
+      out.throttle = out.throttle > 0.45 ? 1 : 0;
+      out.brake = out.brake > 0.2 ? 1 : 0;
+    }
     // reverse out if stuck facing a tree
     if (sim.speed < 1 && out.throttle > 0.3) this.stuckTime += dt;
     else this.stuckTime = Math.max(0, this.stuckTime - dt);

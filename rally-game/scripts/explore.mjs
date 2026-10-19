@@ -6,10 +6,10 @@ const seconds = Number(process.argv[2] ?? 30);
 const every = Number(process.argv[3] ?? 5);
 const out = process.argv[4] ?? '.cache/explore';
 const { browser, page, errors } = await launchGame({ width: 1280, height: 720 });
-await page.evaluate(() => {
+await page.evaluate((process_digital) => {
   window.__RALLY__.setManual(true);
-  window.__RALLY__.setAutopilot(true);
-});
+  window.__RALLY__.setAutopilot(true, 1, process_digital);
+}, process.env.DIGITAL === '1');
 await shot(page, `${out}/t000.png`);
 let t = 0;
 while (t < seconds) {

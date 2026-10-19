@@ -1,11 +1,12 @@
 # PROGRESS: Timberline Rally (vertical slice)
 
 ## Status (latest)
-- Playable: title → countdown → 20-gate timed stage → results with PB.
-- 11/11 Playwright tests pass on the dev server and on the production build.
+- Playable: showroom title → countdown → 20-gate timed stage → TV-shot finish → results with PB and splits. A PB ghost appears on later runs.
+- 13/13 Playwright tests pass on the dev server and on the production build. The deterministic autopilot finishes in 91.605 s.
+- 14 iterations are logged in `docs/ITERATION_LOG.md`.
 - Final review: `docs/FINAL_REVIEW.md`. History: `docs/ITERATION_LOG.md`.
 - Deliverables:
-  - `screenshots/`: 23 real captures.
+  - `screenshots/`: 23 real captures from the production build.
   - `demo.mp4`: about 94 s of real gameplay, local and git-ignored at 60 MB.
   - `docs/media/highlight.mp4`: 16 s clip.
   - `dist/`: after `npm run build`.

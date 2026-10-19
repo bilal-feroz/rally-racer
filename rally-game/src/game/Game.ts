@@ -124,6 +124,8 @@ export class Game {
       preserveDrawingBuffer: opts.test,
     });
     this.quality = opts.quality;
+    // shader info logs only in debug/test (ANGLE prints benign HLSL notes for three's own chunks)
+    this.renderer.debug.checkShaderErrors = opts.debug;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.NeutralToneMapping;

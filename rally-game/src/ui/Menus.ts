@@ -38,6 +38,7 @@ export class Menus {
   private pause: HTMLElement;
   private results: HTMLElement;
   private bestEl: HTMLElement;
+  private qualityBtn: HTMLButtonElement | null = null;
 
   constructor(
     root: HTMLElement,
@@ -70,6 +71,16 @@ export class Menus {
       button('Restart', 'ghost', () => game.startRace()),
       button('Camera', 'ghost', () => game.input.pushAction('camera')),
       button('Mute', 'ghost', () => game.input.pushAction('mute')),
+      (() => {
+        const b = button(`Quality: ${game.quality}`, 'ghost', () => {
+          const order = ['high', 'medium', 'low'] as const;
+          const next = order[(order.indexOf(game.quality) + 1) % order.length];
+          game.applyQuality(next);
+          b.textContent = `Quality: ${next}`;
+        });
+        this.qualityBtn = b;
+        return b;
+      })(),
       button('Quit to title', 'ghost', () => game.toTitle()),
     );
     pc.append(pb, h('div', '', CONTROLS));
@@ -95,6 +106,7 @@ export class Menus {
 
   showPause(): void {
     this.hideAll();
+    if (this.qualityBtn) this.qualityBtn.textContent = `Quality: ${this.game.quality}`;
     this.pause.classList.remove('hidden');
   }
 

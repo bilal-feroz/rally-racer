@@ -54,6 +54,9 @@ export class Vegetation implements CollisionWorld {
   private readonly hash = new Map<number, Obstacle[]>();
   private readonly hcell = 8;
   treeCount = 0;
+  /** distance (m) inside which full-detail trees and ground cover are drawn */
+  lodNear = 420;
+  lodFar = 3200;
   tuftCount = 0;
   private readonly treeMat: THREE.MeshLambertMaterial;
   private readonly lowMat: THREE.MeshLambertMaterial;
@@ -304,9 +307,9 @@ export class Vegetation implements CollisionWorld {
     this.lodTimer = 0.25;
     for (const c of this.chunks) {
       const d = Math.hypot(c.center.x - camPos.x, c.center.z - camPos.z);
-      const near = d < 420;
+      const near = d < this.lodNear;
       for (const o of c.high) o.visible = near;
-      for (const o of c.low) o.visible = !near && d < 3200;
+      for (const o of c.low) o.visible = !near && d < this.lodFar;
     }
   }
 }

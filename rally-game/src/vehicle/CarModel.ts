@@ -169,7 +169,7 @@ export class CarModel {
   readonly wheels: { pivot: THREE.Group; spin: THREE.Group }[] = [];
   readonly tailMat: THREE.MeshLambertMaterial;
   readonly headMat: THREE.MeshLambertMaterial;
-  readonly flame: THREE.Mesh;
+  readonly flame: THREE.Sprite;
   readonly paint: THREE.Material;
   private outlineMat: THREE.ShaderMaterial;
   private readonly cgY = 0.48;
@@ -365,15 +365,32 @@ export class CarModel {
       this.wheels.push({ pivot, spin });
     }
 
-    // backfire flame
-    const flameGeo = new THREE.ConeGeometry(0.1, 0.5, 8);
-    flameGeo.rotateX(-Math.PI / 2);
-    flameGeo.translate(0, 0, -0.25);
-    this.flame = new THREE.Mesh(
-      flameGeo,
-      new THREE.MeshBasicMaterial({ color: '#ffb347', transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }),
+    // backfire: a camera-facing fireball sprite at the exhaust tip
+    const fireTex = (() => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 128;
+      const g = c.getContext('2d')!;
+      const grd = g.createRadialGradient(64, 64, 2, 64, 64, 62);
+      grd.addColorStop(0, 'rgba(255,250,220,1)');
+      grd.addColorStop(0.25, 'rgba(255,196,80,0.95)');
+      grd.addColorStop(0.55, 'rgba(255,110,30,0.55)');
+      grd.addColorStop(1, 'rgba(255,60,10,0)');
+      g.fillStyle = grd;
+      // a few lobes so it reads as a burst, not a disc
+      for (let k = 0; k < 7; k++) {
+        const a = (k / 7) * Math.PI * 2;
+        g.beginPath();
+        g.ellipse(64 + Math.cos(a) * 14, 64 + Math.sin(a) * 14, 40, 26, a, 0, Math.PI * 2);
+        g.fill();
+      }
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    })();
+    this.flame = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: fireTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.95 }),
     );
-    this.flame.position.set(0.42, 0.31, -2.2);
+    this.flame.position.set(0.42, 0.31, -2.32);
     this.flame.visible = false;
     this.body.add(this.flame);
 
@@ -431,10 +448,11 @@ export class CarModel {
     this.tailMat.emissiveIntensity = 0.5 + braking * 2.6;
     this.tailMat.color.set(braking > 0.1 ? '#ff6a3a' : '#ff5a2a');
     // flame
-    if (sim.backfire > 0.05 && Math.random() < 0.6) {
+    if (sim.backfire > 0.05 && Math.random() < 0.55) {
       this.flame.visible = true;
-      const s = 0.6 + Math.random() * 0.8;
-      this.flame.scale.set(s, s, 0.6 + Math.random());
+      const s = (0.35 + Math.random() * 0.45) * (0.5 + sim.backfire * 0.6);
+      this.flame.scale.set(s * 1.3, s, 1);
+      this.flame.material.rotation = Math.random() * Math.PI * 2;
     } else this.flame.visible = false;
     void dt;
   }

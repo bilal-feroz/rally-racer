@@ -22,6 +22,7 @@ export class ChaseCamera {
   private readonly offset = new THREE.Vector3();
   private heightOff = 2.2;
   private pitchLook = 0;
+  private turnLook = 0;
   private init = false;
   private shakeAmp = 0;
   private shakeT = 0;
@@ -143,7 +144,15 @@ export class ChaseCamera {
     const ly = Math.sin(this.yaw);
     const lz = Math.cos(this.yaw);
     this.pitchLook = damp(this.pitchLook, clamp(sim.vel.y * 0.04, -0.4, 0.4), 4, dt);
-    this.look.set(carPos.x + ly * la, carPos.y + (this.portrait ? 0.7 : 0.62) + this.pitchLook, carPos.z + lz * la);
+    // glance into the corner: shift the aim toward the inside of the turn (yaw rate, left +)
+    this.turnLook = damp(this.turnLook, clamp(sim.angVel.y * 1.1, -1.6, 1.6) * smoothstep(5, 20, vh), 3, dt);
+    const lx = Math.cos(this.yaw);
+    const lzLeft = -Math.sin(this.yaw);
+    this.look.set(
+      carPos.x + ly * la + lx * this.turnLook,
+      carPos.y + (this.portrait ? 0.7 : 0.62) + this.pitchLook,
+      carPos.z + lz * la + lzLeft * this.turnLook,
+    );
     if (this.shakeAmp > 0.001) {
       const a = this.shakeAmp * this.shakeAmp * 0.12;
       const t = this.shakeT * 37;

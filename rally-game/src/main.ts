@@ -1,5 +1,6 @@
 import { Game, type GameOptions } from './game/Game';
 import { installTestApi } from './testing/TestApi';
+import { loadSettings } from './game/Storage';
 
 const params = new URLSearchParams(location.search);
 const test = params.get('test') === '1';
@@ -8,7 +9,7 @@ const opts: GameOptions = {
   debug: test || params.get('debug') === '1',
   seed: Number(params.get('seed') ?? 123) || 123,
   portrait: params.get('portrait') === '1',
-  quality: (params.get('quality') as GameOptions['quality']) ?? 'high',
+  quality: (params.get('quality') as GameOptions['quality']) ?? loadSettings().quality ?? 'high',
   autostart: test || params.get('autostart') === '1',
   noAudio: test || params.get('audio') === '0',
 };

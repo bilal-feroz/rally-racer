@@ -249,7 +249,7 @@ export class AudioEngine {
 
   toggleMute(): boolean {
     this.muted = !this.muted;
-    saveSettings({ muted: this.muted, volume: this.volume });
+    saveSettings({ ...loadSettings(), muted: this.muted, volume: this.volume });
     this.applyMaster();
     return this.muted;
   }

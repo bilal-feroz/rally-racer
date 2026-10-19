@@ -35,9 +35,12 @@ export function clearBest(): void {
   }
 }
 
+export type Quality = 'high' | 'medium' | 'low';
+
 export interface Settings {
   muted: boolean;
   volume: number;
+  quality?: Quality;
 }
 
 export function loadSettings(): Settings {

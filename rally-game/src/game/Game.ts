@@ -19,7 +19,7 @@ import { TerrainMesh } from '../world/TerrainMesh';
 import { Vegetation } from '../world/Vegetation';
 import { Water } from '../world/Water';
 import { Input } from './Input';
-import { loadBest, saveBest, type BestRecord } from './Storage';
+import { loadBest, loadSettings, saveBest, saveSettings, type BestRecord, type Quality } from './Storage';
 import { Effects } from '../vfx/Effects';
 import { AudioEngine } from '../audio/AudioEngine';
 
@@ -98,6 +98,11 @@ export class Game {
   private lastFrame = performance.now();
   private debugVisible = false;
   portrait = false;
+  readonly loadTimings: Record<string, number> = {};
+  quality: Quality = 'high';
+  private autoQualityTime = 0;
+  private autoQualityFrames = 0;
+  private autoQualityDone = false;
 
   constructor(
     readonly canvas: HTMLCanvasElement,
@@ -113,8 +118,7 @@ export class Game {
       powerPreference: 'high-performance',
       preserveDrawingBuffer: opts.test,
     });
-    const maxPR = opts.quality === 'high' ? 1.5 : opts.quality === 'medium' ? 1.25 : 1;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxPR));
+    this.quality = opts.quality;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.NeutralToneMapping;
@@ -132,22 +136,31 @@ export class Game {
 
   async init(progress: (p: number, label: string) => void): Promise<void> {
     const seed = this.opts.seed;
+    const tm = (label: string, t0: number) => (this.loadTimings[label] = Math.round(performance.now() - t0));
+    let t0 = performance.now();
     progress(0.05, 'Surveying the stage');
     await this.nextFrame();
     this.track = new Track(STAGE);
     this.biome = new Biome(seed);
+    tm('track', t0);
     progress(0.15, 'Shaping the hills');
     await this.nextFrame();
+    t0 = performance.now();
     this.field = new TerrainField(this.track, seed);
+    tm('terrainField', t0);
     progress(0.45, 'Laying hardpack');
     await this.nextFrame();
+    t0 = performance.now();
     this.terrain = new TerrainMesh(this.field, this.biome);
     this.road = new RoadMesh(this.track);
     this.props = new Props(this.track, this.field, seed);
+    tm('meshes', t0);
     progress(0.6, 'Planting the forest');
     await this.nextFrame();
+    t0 = performance.now();
     this.veg = new Vegetation(this.field, this.track, this.biome, seed, this.props.reserved);
     this.props.build(seed);
+    tm('vegetation', t0);
     progress(0.85, 'Fuelling the car');
     await this.nextFrame();
 
@@ -194,6 +207,7 @@ export class Game {
     this.menus = new Menus(this.overlayRoot, this);
     this.best = loadBest();
 
+    this.applyQuality(this.quality, false);
     window.addEventListener('resize', () => this.resize());
     this.resize();
     this.resetToStart();
@@ -310,6 +324,25 @@ export class Game {
     this.cam.reset();
   }
 
+  /** Pixel ratio, shadow resolution and vegetation draw distance per preset. */
+  applyQuality(q: Quality, persist = true): void {
+    this.quality = q;
+    const pr = q === 'high' ? 1.5 : q === 'medium' ? 1.25 : 1;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, pr));
+    const sm = q === 'high' ? 4096 : q === 'medium' ? 2048 : 1536;
+    if (this.sun && this.sun.shadow.mapSize.x !== sm) {
+      this.sun.shadow.mapSize.set(sm, sm);
+      this.sun.shadow.map?.dispose();
+      this.sun.shadow.map = null;
+    }
+    if (this.veg) {
+      this.veg.lodNear = q === 'high' ? 420 : q === 'medium' ? 330 : 240;
+      this.veg.lodFar = q === 'low' ? 1800 : 3200;
+    }
+    this.resize();
+    if (persist) saveSettings({ ...loadSettings(), quality: q });
+  }
+
   resize(): void {
     const r = this.frame.getBoundingClientRect();
     const w = Math.max(1, Math.round(r.width));
@@ -337,6 +370,22 @@ export class Game {
     }
     if (!this.manual) this.update(dt);
     this.render();
+    this.autoQuality(dt);
+  }
+
+  /** If the first seconds of driving run slowly, step the preset down once (not in tests). */
+  private autoQuality(dt: number): void {
+    if (this.autoQualityDone || this.manual || this.opts.test || this.state !== 'racing') return;
+    this.autoQualityTime += dt;
+    this.autoQualityFrames++;
+    if (this.autoQualityTime < 6) return;
+    const fps = this.autoQualityFrames / this.autoQualityTime;
+    this.autoQualityDone = true;
+    if (fps < 42 && this.quality !== 'low') {
+      const next: Quality = fps < 30 || this.quality === 'medium' ? 'low' : 'medium';
+      this.applyQuality(next);
+      this.hud.message(`GRAPHICS: ${next.toUpperCase()}`, 1.4, true);
+    }
   }
 
   private handleActions(): void {

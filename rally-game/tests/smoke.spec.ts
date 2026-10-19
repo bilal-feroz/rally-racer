@@ -101,6 +101,61 @@ test.describe('smoke', () => {
     expect(errors).toEqual([]);
   });
 
+  test('gamepad analog stick + triggers drive the car (mocked controller)', async ({ page }) => {
+    const errors: string[] = [];
+    await page.addInitScript(() => {
+      const buttons = Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 }));
+      const pad = { id: 'mock-pad', index: 0, connected: true, mapping: 'standard', axes: [0, 0, 0, 0], buttons, timestamp: 0 };
+      (window as any).__pad = pad;
+      (navigator as any).getGamepads = () => [pad];
+    });
+    await openGame(page, errors);
+    // right trigger = throttle
+    await page.evaluate(() => {
+      (window as any).__pad.buttons[7].value = 1;
+      (window as any).__pad.buttons[7].pressed = true;
+    });
+    const t1 = await step(page, 3);
+    expect(t1.speed).toBeGreaterThan(15);
+    // stick left -> heading increases
+    await page.evaluate(() => {
+      (window as any).__pad.buttons[7].value = 0.4;
+      (window as any).__pad.axes[0] = -0.6;
+    });
+    const h0 = t1.heading;
+    const t2 = await step(page, 0.6);
+    expect(wrap(t2.heading - h0)).toBeGreaterThan(0.03);
+    // left trigger = brake
+    await page.evaluate(() => {
+      const p = (window as any).__pad;
+      p.axes[0] = 0;
+      p.buttons[7].value = 0;
+      p.buttons[7].pressed = false;
+      p.buttons[6].value = 1;
+      p.buttons[6].pressed = true;
+    });
+    const v0 = t2.speed;
+    const t3 = await step(page, 1.0);
+    expect(t3.speed).toBeLessThan(v0 - 5);
+    expect(errors).toEqual([]);
+  });
+
+  test('9:16 preview mode keeps the canvas undistorted', async ({ page }) => {
+    const errors: string[] = [];
+    await openGame(page, errors);
+    await page.evaluate(() => (window as any).__RALLY__.setPortrait(true));
+    const r = await page.evaluate(() => {
+      const c = document.getElementById('game-canvas') as HTMLCanvasElement;
+      const b = c.getBoundingClientRect();
+      const g = (window as any).game;
+      return { cssAspect: b.width / b.height, bufAspect: c.width / c.height, camAspect: g.cam.camera.aspect };
+    });
+    expect(r.cssAspect).toBeCloseTo(9 / 16, 1);
+    expect(r.bufAspect).toBeCloseTo(r.cssAspect, 2);
+    expect(r.camAspect).toBeCloseTo(r.cssAspect, 2);
+    expect(errors).toEqual([]);
+  });
+
   test('off-road grass slows the car and is reported as grass', async ({ page }) => {
     const errors: string[] = [];
     await openGame(page, errors);

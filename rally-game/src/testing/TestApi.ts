@@ -52,7 +52,7 @@ export function installTestApi(game: Game): void {
     },
     setAutopilot: (on: boolean, aggression = 1, digital = false) => {
       game.autopilotOn = on;
-      game.autopilot.opts.aggression = aggression;
+      game.autopilot.setAggression(aggression);
       game.autopilot.opts.digital = digital;
     },
     setLateralTarget: (d: number) => {

@@ -31,6 +31,7 @@ const CONTROLS = `
   <span><kbd>Esc</kbd></span><span>Pause</span>
   <span><kbd>M</kbd> <kbd>V</kbd></span><span>Mute · 9:16 preview</span>
   <span><kbd>T</kbd></span><span>Restart stage</span>
+  <span><kbd>G</kbd></span><span>Ghost of your best run on/off</span>
 </div>`;
 
 export class Menus {

@@ -38,6 +38,37 @@ test.describe('full stage drive', () => {
     expect(errors).toEqual([]);
   });
 
+  test('a personal best is saved and replayed as a ghost on the next run', async ({ page }) => {
+    const errors: string[] = [];
+    await openGame(page, errors);
+    // start from a clean restart so the recorded run begins at race time 0
+    await page.evaluate(() => {
+      const R = (window as any).__RALLY__;
+      R.restart();
+      R.setAutopilot(true);
+    });
+    let t = await tel(page);
+    for (let i = 0; i < 300 && t.state !== 'finished'; i++) t = await step(page, 0.5);
+    expect(t.state).toBe('finished');
+    // a ghost was stored with the PB; restart and compare ghost vs. a re-driven car at t=12 s
+    const res = await page.evaluate(() => {
+      const R = (window as any).__RALLY__;
+      const g = (window as any).game;
+      const stored = !!localStorage.getItem('timberline-rally.ghost.v1');
+      R.restart();
+      R.setAutopilot(true);
+      R.step(12);
+      const gp = g.ghost.model.root.position;
+      const cp = g.sim.pos;
+      return { stored, visible: g.ghost.model.root.visible, gap: Math.hypot(gp.x - cp.x, gp.z - cp.z) };
+    });
+    expect(res.stored).toBe(true);
+    expect(res.visible).toBe(true);
+    // same deterministic autopilot: the ghost should be right alongside the car
+    expect(res.gap).toBeLessThan(3);
+    expect(errors).toEqual([]);
+  });
+
   test('jump: the car gets airborne over the crest and lands on its wheels', async ({ page }) => {
     const errors: string[] = [];
     await openGame(page, errors);

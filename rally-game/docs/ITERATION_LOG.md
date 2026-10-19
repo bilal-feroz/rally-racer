@@ -189,3 +189,12 @@ Test environment for every run: Windows 11, RTX 3050 Laptop GPU (ANGLE/D3D11), R
   - The camera slowly orbits the parked car, with the menu card on the left and the car framed in the right half.
   - The first attempt aimed the wrong way (my perpendicular sign was flipped) and hid the car behind the card. Fixed, verified in `screenshots/ui-title.png`.
 - 11/11 tests pass. The clean autopilot run is 91.6 s.
+
+## Iteration 11: personal-best ghost
+- Each run records its pose at 20 Hz from the physics state. A new PB stores it in localStorage as a base64 Float32Array, about 70 KB.
+- The next attempt replays it as a translucent toon car (no outlines, no shadow) driven by race time. G toggles it.
+- **Test:** `drive › personal best is saved and replayed as a ghost`. The ghost and the re-driven car are within 3 m at t=12 s.
+- **Test-API bugs found on the way**
+  - Autostart idle frames offset the first recording. The test now restarts first.
+  - `setAutopilot(aggression)` didn't rebuild the speed plan. Fixed.
+- Visual: `.cache/ghost.png` shows the ghost pulling ahead of a slower run, with the split delta +0.01 at gate 2.

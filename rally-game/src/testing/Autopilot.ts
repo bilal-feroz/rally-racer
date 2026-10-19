@@ -20,7 +20,7 @@ export interface AutopilotOptions {
  * ahead on the centre line, and a speed plan derived from curvature + crest geometry.
  */
 export class Autopilot {
-  readonly profile: Float32Array;
+  profile: Float32Array;
   readonly opts: AutopilotOptions;
   lateralTarget = 0;
   private readonly out: DriveInput = { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
@@ -66,6 +66,13 @@ export class Autopilot {
       v[i] = Math.min(v[i], Math.sqrt(v[i + 1] * v[i + 1] + 2 * o.brakeDec * T.ds));
     }
     return v;
+  }
+
+  /** Change how hard the driver pushes (rebuilds the speed plan). */
+  setAggression(a: number): void {
+    if (a === this.opts.aggression) return;
+    this.opts.aggression = a;
+    this.profile = this.buildProfile();
   }
 
   targetSpeed(s: number): number {

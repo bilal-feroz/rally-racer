@@ -22,6 +22,7 @@ import { Input } from './Input';
 import { loadBest, loadSettings, saveBest, saveSettings, type BestRecord, type Quality } from './Storage';
 import { Effects } from '../vfx/Effects';
 import { AudioEngine } from '../audio/AudioEngine';
+import { GhostPlayer, GhostRecorder } from './Ghost';
 
 export type GameState = 'loading' | 'title' | 'countdown' | 'racing' | 'finished' | 'paused';
 
@@ -61,6 +62,8 @@ export class Game {
   readonly input: Input;
   sun!: THREE.DirectionalLight;
   sky!: THREE.Mesh;
+  ghost!: GhostPlayer;
+  private readonly ghostRec = new GhostRecorder();
   water!: Water;
 
   state: GameState = 'loading';
@@ -196,6 +199,8 @@ export class Game {
     const envRT = pmrem.fromScene(envScene, 0, 0.1, 3000);
     pmrem.dispose();
     this.car = new CarModel(envRT.texture);
+    this.ghost = new GhostPlayer(scene);
+    this.ghost.load();
     this.water = new Water(this.field, envRT.texture);
     if (this.water.mesh) scene.add(this.water.mesh);
     scene.add(this.car.root, this.car.blob);
@@ -265,6 +270,8 @@ export class Game {
 
   startRace(skipCountdown = false): void {
     this.resetToStart();
+    this.ghostRec.reset();
+    this.ghost.load();
     this.menus.hideAll();
     this.hud.setVisible(true);
     this.audio.resume();
@@ -420,6 +427,10 @@ export class Game {
         case 'portrait':
           this.setPortrait(!this.portrait);
           break;
+        case 'ghost':
+          this.ghost.enabled = !this.ghost.enabled;
+          this.hud.message(this.ghost.enabled ? 'GHOST ON' : 'GHOST OFF', 0.8, true);
+          break;
         case 'debug':
           this.debugVisible = !this.debugVisible;
           this.hud.fpsEl.classList.toggle('show', this.debugVisible);
@@ -495,6 +506,7 @@ export class Game {
     // only allow continuous progress (no teleporting across hairpins)
     if (Math.abs(p.s - this.progressS) < 25) this.progressS = p.s;
     if (this.state === 'racing') {
+      this.ghostRec.sample(this.raceTime, sim.pos, sim.quat);
       this.raceTime += dt;
       this.distance += sim.speed * dt;
       this.checkGates(dt);
@@ -539,6 +551,7 @@ export class Game {
     if (isBest) {
       this.best = { time: t, splits: this.splits.slice(), date: Date.now() };
       saveBest(this.best);
+      this.ghostRec.save(t);
     }
     this.hud.message('FINISH', 1.6);
     this.audio.finish();
@@ -598,6 +611,7 @@ export class Game {
     this.cam.update(dt, sim, _pos, _quat, this.field, this.track);
     this.fx.update(dt, sim, this.cam.camera, this.state === 'racing' || this.state === 'finished' || this.state === 'countdown');
     this.veg.update(dt, this.cam.camera.position, this.time);
+    this.ghost.update(this.raceTime, this.state === 'racing' || this.state === 'countdown');
     (this.sky.material as THREE.ShaderMaterial).uniforms.uTime.value = this.time;
     this.water.update(this.time);
     this.sky.position.copy(this.cam.camera.position);

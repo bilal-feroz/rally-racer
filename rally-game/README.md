@@ -38,7 +38,7 @@ Open **http://127.0.0.1:5173** and click **Start stage** (or press Enter).
 | Fullscreen | F | |
 | FPS / draw-call overlay | F3 | |
 
-Your personal best, gate splits and a **ghost car of your best run** are saved in `localStorage`. On your next attempt you race against the ghost, and split popups show the delta to your PB.
+Your personal best, gate splits, a **local top-5 leaderboard** and a **ghost car of your best run** are saved in `localStorage`. On your next attempt you race against the ghost, and split popups show the delta to your PB.
 
 **Pause menu:**
 - **Quality** cycles High / Medium / Low. It also downgrades itself once if the first seconds of driving run below 42 fps.

@@ -4,7 +4,7 @@
 
 **Reference:** `hardpack_rally_reference_pack/reference/rally_reference.mp4` (720×1280, 20.5 s). I studied it through extracted stills and dense contact sheets; see `docs/REFERENCE_BREAKDOWN.md`. Your 16:9 screenshot of the same game also informed the props.
 
-## What was achieved (14 build → play → review iterations; see `docs/ITERATION_LOG.md`)
+## What was achieved (15 build → play → review iterations; see `docs/ITERATION_LOG.md`)
 - **A real-time 3D rally game.**
   - One stage: "Black Pine Ridge". It is 3.1 km with 20 gates and a timed finish.
   - Features along it: a fast opening, a 240 m sweeper, a crest jump into a downhill vista over a lake, S-bends, a 15° banked 150° right-hander with a cut bank and a water-tower landmark, an uphill shadow-striped straight, a second crest with about 1 s of air, fast flowing bends, two tight hay-baled hairpins, an off-camber right and a fenced finish straight.
@@ -26,9 +26,9 @@
 - **Feel and presentation.**
   - Chase camera with velocity-weighted yaw (drifts show the car's flank), corner look-ahead, take-off lag so jumps read, foliage avoidance, speed FOV and impact shake. Bonnet and TV cameras are also available, and the finish line cuts to a TV shot.
   - Dust plumes and landing bursts, fading tyre marks, brake lights and backfire flashes.
-  - Procedural AudioWorklet engine (firing-pulse model) plus gravel, scrub, wind, impacts and UI tones.
+  - Procedural AudioWorklet engine (firing-pulse model) plus a turbo spool and blow-off, gravel, scrub, wind, impacts and UI tones.
   - Compact HUD: timer, gate X OF 20, route preview, split popups with deltas to PB, tach arc with gear, MPH or KM/H, odometer and input bars.
-  - Showroom title screen, countdown, pause menu (quality, assists, camera, mute), results with 20 splits, saved personal best, and a **PB ghost car**.
+  - Showroom title screen, countdown, pause menu (quality, assists, camera, mute), results with 20 splits, saved personal best, a **local top-5 leaderboard** and a **PB ghost car**.
   - 9:16 preview mode. Gamepad support. Auto-pause when the tab is hidden.
 - **Automation.**
   - Deterministic test API (`?test=1`).
@@ -56,7 +56,7 @@
 | Automation: smoke + full-stage drive, screenshots in motion, console checked | **Pass** | **13/13** on the dev server and on `vite preview` of `dist/`. Every spec asserts zero console errors |
 | Performance | **Pass (measured)** | `perf.mjs`, production build, 1920×1080, real-time loop with the autopilot driving: **121 fps average, 8.2 ms mean, p95 15.1 ms, p99 16.0 ms**, about 980 draw calls and 1.9 M triangles. Heap flat. Presets plus auto-downgrade cover weaker GPUs (untested on one) |
 | 9:16 preview, undistorted | **Pass** | `smoke › 9:16 preview`: canvas, buffer and camera aspect are all 0.5625. `portrait-preview.png`, `portrait-banked.png` |
-| Production build | **Pass** | `npm run build` (tsc + vite) gives `dist/` (690 kB JS, 186 kB gzipped). The suite passes against the served build |
+| Production build | **Pass** | `npm run build` (tsc + vite) gives `dist/` (692 kB JS, 186 kB gzipped). The suite passes against the served build |
 | Audio | **Partial** | It renders and is analysed offline: no NaN or clipping, and the harmonics follow RPM (`docs/audio/engine-sweep.wav`). **Not verified by ear**: I can't listen in this environment |
 
 ## Tests run (final)

@@ -3,7 +3,7 @@
 ## Status (latest)
 - Playable: showroom title → countdown → 20-gate timed stage → TV-shot finish → results with PB and splits. A PB ghost appears on later runs.
 - 13/13 Playwright tests pass on the dev server and on the production build. The deterministic autopilot finishes in 91.605 s.
-- 14 iterations are logged in `docs/ITERATION_LOG.md`.
+- 15 iterations are logged in `docs/ITERATION_LOG.md`.
 - Final review: `docs/FINAL_REVIEW.md`. History: `docs/ITERATION_LOG.md`.
 - Deliverables:
   - `screenshots/`: 23 real captures from the production build.

@@ -19,7 +19,7 @@ import { TerrainMesh } from '../world/TerrainMesh';
 import { Vegetation } from '../world/Vegetation';
 import { Water } from '../world/Water';
 import { Input } from './Input';
-import { loadBest, loadSettings, saveBest, saveSettings, type BestRecord, type Quality } from './Storage';
+import { addTop, loadBest, loadSettings, saveBest, saveSettings, type BestRecord, type Quality } from './Storage';
 import { Effects } from '../vfx/Effects';
 import { AudioEngine } from '../audio/AudioEngine';
 import { GhostPlayer, GhostRecorder } from './Ghost';
@@ -577,6 +577,7 @@ export class Game {
     this.finishCoast = 0;
     const prev = this.best;
     const isBest = !prev || t < prev.time;
+    const rank = this.opts.test ? 0 : addTop(t);
     if (isBest) {
       this.best = { time: t, splits: this.splits.slice(), date: Date.now() };
       saveBest(this.best);
@@ -590,7 +591,7 @@ export class Game {
     }
     this.audio.finish();
     setTimeout(() => {
-      if (this.state === 'finished') this.menus.showResults(t, prev?.time ?? null, isBest, this.splits);
+      if (this.state === 'finished') this.menus.showResults(t, prev?.time ?? null, isBest, this.splits, rank);
     }, this.manual ? 0 : 1600);
   }
 

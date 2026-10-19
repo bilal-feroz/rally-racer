@@ -221,3 +221,10 @@ Test environment for every run: Windows 11, RTX 3050 Laptop GPU (ANGLE/D3D11), R
 - **Landing dust:** hard landings spawn a ring of dust at each grounded wheel.
 - **Assists:** the pause menu has *Assists: arcade / pro* (persisted). Pro disables the countersteer bias, the drift stabiliser and the handbrake yaw assist.
 - 13/13 tests pass. Autopilot 91.6 s clean.
+
+## Iteration 15: local leaderboard + turbo audio
+- **Leaderboard:** a top-5 list of finish times with dates, shown on the title card. The results screen shows the rank ("#2 of top 5").
+  - Verified through the real module: insert order 95.2, 91.1, 99.9, 93, 97, 120, 90 gives ranks 1, 1, 3, 2, 4, 0, 1 and a final list of 90 / 91.1 / 93 / 95.2 / 97.
+- **Turbo audio:** a faint sine spool whistle that tracks boost (rpm × load, with spool lag), and a blow-off vent "pssh" when lifting at boost.
+  - Deliberately quiet (whistle gain 0.022, vent 0.1), since I can't audition them by ear.
+  - A normal audio-on session ran with 0 console warnings or errors.

@@ -27,6 +27,38 @@ export function saveBest(b: BestRecord): void {
   }
 }
 
+const KEY_TOP = 'timberline-rally.top.v1';
+
+export interface TopEntry {
+  time: number;
+  date: number;
+}
+
+export function loadTop(): TopEntry[] {
+  try {
+    const raw = localStorage.getItem(KEY_TOP);
+    const v = raw ? (JSON.parse(raw) as TopEntry[]) : [];
+    return Array.isArray(v) ? v.filter((e) => typeof e.time === 'number').slice(0, 5) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Insert a finish time; returns its 1-based rank in the top 5 (or 0 if it didn't place). */
+export function addTop(time: number): number {
+  const list = loadTop();
+  list.push({ time, date: Date.now() });
+  list.sort((a, b) => a.time - b.time);
+  const top = list.slice(0, 5);
+  try {
+    localStorage.setItem(KEY_TOP, JSON.stringify(top));
+  } catch {
+    /* ignore */
+  }
+  const idx = top.findIndex((e) => e.time === time);
+  return idx >= 0 ? idx + 1 : 0;
+}
+
 export function clearBest(): void {
   try {
     localStorage.removeItem(KEY_BEST);

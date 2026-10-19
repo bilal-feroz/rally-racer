@@ -539,3 +539,17 @@ body.portrait-preview .screen.title-screen {
   justify-content: center;
   padding-left: 0;
 }
+
+.top-times {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 2px 14px;
+  font-size: 13px;
+  color: var(--muted);
+  margin: 6px 0 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.top-times span:nth-child(3n) {
+  text-align: right;
+}

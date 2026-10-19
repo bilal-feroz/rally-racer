@@ -1,4 +1,5 @@
 import type { Game } from '../game/Game';
+import { loadTop } from '../game/Storage';
 import { formatTime } from './Hud';
 
 function h(tag: string, cls = '', html = ''): HTMLElement {
@@ -40,6 +41,7 @@ export class Menus {
   private pause: HTMLElement;
   private results: HTMLElement;
   private bestEl: HTMLElement;
+  private topEl!: HTMLElement;
   private qualityBtn: HTMLButtonElement | null = null;
   private assistBtn: HTMLButtonElement | null = null;
 
@@ -54,6 +56,8 @@ export class Menus {
     tc.append(h('div', 'subtitle', 'Stage 1 · Black Pine Ridge · 20 gates · hardpack'));
     this.bestEl = h('div', 'stat-row');
     tc.append(this.bestEl);
+    this.topEl = h('div', 'top-times');
+    tc.append(this.topEl);
     const tb = h('div', 'btn-row');
     tb.append(button('Start stage', '', () => game.startRace()));
     tc.append(tb);
@@ -112,7 +116,12 @@ export class Menus {
   showTitle(): void {
     this.hideAll();
     const b = this.game.best;
-    this.bestEl.innerHTML = `<span>Personal best</span><b>${b ? formatTime(b.time) : '—'}</b>`;
+    const top = loadTop();
+    const pb = b ? b.time : top.length ? top[0].time : null;
+    this.bestEl.innerHTML = `<span>Personal best</span><b>${pb !== null ? formatTime(pb) : '—'}</b>`;
+    this.topEl.innerHTML = top.length
+      ? top.map((e, i) => `<span>${i + 1}.</span><span>${formatTime(e.time)}</span><span>${new Date(e.date).toLocaleDateString()}</span>`).join('')
+      : '';
     this.title.classList.remove('hidden');
   }
 
@@ -123,7 +132,7 @@ export class Menus {
     this.pause.classList.remove('hidden');
   }
 
-  showResults(time: number, prevBest: number | null, isBest: boolean, splits: number[]): void {
+  showResults(time: number, prevBest: number | null, isBest: boolean, splits: number[], rank = 0): void {
     this.hideAll();
     const r = this.results;
     r.innerHTML = '';
@@ -132,6 +141,7 @@ export class Menus {
     c.append(h('div', 'big-time', formatTime(time)));
     if (isBest) c.append(h('div', 'pb', prevBest === null ? 'FIRST CLEAN RUN — PERSONAL BEST SET' : `NEW PERSONAL BEST  −${(prevBest - time).toFixed(3)}s`));
     else if (prevBest !== null) c.append(h('div', 'stat-row', `<span>Personal best</span><b>${formatTime(prevBest)}</b>`));
+    if (rank > 0) c.append(h('div', 'stat-row', `<span>Local leaderboard</span><b>#${rank} of top 5</b>`));
     c.append(h('div', 'stat-row', `<span>Recoveries</span><b>${this.game.recoveries}</b>`));
     c.append(h('div', 'stat-row', `<span>Distance</span><b>${(this.game.distance / 1609.34).toFixed(2)} mi</b>`));
     const sp = h('div', 'splits');

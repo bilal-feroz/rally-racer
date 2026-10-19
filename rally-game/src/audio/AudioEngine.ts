@@ -237,6 +237,19 @@ export class AudioEngine {
     wsrc.connect(wf).connect(this.windGain).connect(this.master);
     wsrc.start();
 
+    // turbo spool: a faint sine whistle whose pitch follows boost (rpm x load)
+    this.turboOsc = ctx.createOscillator();
+    this.turboOsc.type = 'sine';
+    this.turboOsc.frequency.value = 1800;
+    const tf = ctx.createBiquadFilter();
+    tf.type = 'bandpass';
+    tf.frequency.value = 3000;
+    tf.Q.value = 0.8;
+    this.turboGain = ctx.createGain();
+    this.turboGain.gain.value = 0;
+    this.turboOsc.connect(tf).connect(this.turboGain).connect(this.master);
+    this.turboOsc.start();
+
     this.ready = true;
     this.applyMaster();
   }
@@ -295,6 +308,14 @@ export class AudioEngine {
     this.scrubFilter.frequency.setTargetAtTime(900 + sp * 18, t, 0.1);
     this.windGain.gain.setTargetAtTime(active ? smoothstep(15, 60, sp) * 0.18 : 0, t, 0.2);
 
+    // turbo: boost builds with rpm under load; lifting at boost vents a short "pssh"
+    const boostTarget = load * smoothstep(3000, 6500, rpm);
+    this.boost += (boostTarget - this.boost) * Math.min(1, dt * (boostTarget > this.boost ? 2.5 : 8));
+    this.turboOsc.frequency.setTargetAtTime(1600 + this.boost * 3600, t, 0.05);
+    this.turboGain.gain.setTargetAtTime(active ? this.boost * 0.022 : 0, t, 0.05);
+    if (active && this.lastLoad > 0.6 && load < 0.15 && this.boost > 0.45) this.blowOff(this.boost);
+    this.lastLoad = load;
+
     if (sim.landingImpact > 0.25 && !this.landingLatch) {
       this.landingLatch = true;
       this.thud(sim.landingImpact);
@@ -307,6 +328,31 @@ export class AudioEngine {
   }
 
   private landingLatch = false;
+  private turboOsc!: OscillatorNode;
+  private turboGain!: GainNode;
+  private boost = 0;
+  private lastLoad = 0;
+
+  /** Blow-off valve vent: a short band-passed noise burst. */
+  private blowOff(strength: number): void {
+    if (!this.ctx || !this.ready) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const n = ctx.createBufferSource();
+    n.buffer = this.noiseBuf;
+    const f = ctx.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.setValueAtTime(3200, t);
+    f.frequency.exponentialRampToValueAtTime(1400, t + 0.3);
+    f.Q.value = 1.1;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.1 * strength, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
+    n.connect(f).connect(g).connect(this.master);
+    n.start(t, Math.random());
+    n.stop(t + 0.35);
+  }
   private hitLatch = false;
 
   thud(strength: number): void {

@@ -48,7 +48,7 @@ await session(async (page) => {
   // jump: step until airborne
   const j = await tag(page, 'jump1');
   await driveTo(page, j.s0 - 15);
-  const tj = await api(page, () => window.__RALLY__.stepUntil('t.airTime > 0.22', 4, 1 / 60));
+  const tj = await api(page, () => window.__RALLY__.stepUntil('t.airTime > 0.38', 4, 1 / 60));
   await save(page, 'jump', tj);
   const v = await tag(page, 'vista');
   await driveTo(page, v.s0 + 40);

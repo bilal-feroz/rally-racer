@@ -3,18 +3,18 @@ import { Noise2D, smoothstep } from '../core/math';
 
 /** Shared ground palette + vegetation density functions (used by terrain colouring and tree placement). */
 export const GROUND = {
-  grassA: new THREE.Color('#7a9e48'),
-  grassB: new THREE.Color('#5f8a40'),
-  grassDry: new THREE.Color('#9ea257'),
-  forestFloor: new THREE.Color('#5b7134'),
-  forestDark: new THREE.Color('#47602d'),
-  sand: new THREE.Color('#d9bf95'),
-  sandDark: new THREE.Color('#c4a47a'),
+  grassA: new THREE.Color('#8a9f55'),
+  grassB: new THREE.Color('#6e8a4c'),
+  grassDry: new THREE.Color('#a8a463'),
+  forestFloor: new THREE.Color('#64713f'),
+  forestDark: new THREE.Color('#536039'),
+  sand: new THREE.Color('#dfc8a6'),
+  sandDark: new THREE.Color('#cbb08c'),
   dirtBank: new THREE.Color('#c49a6c'),
   rock: new THREE.Color('#8f8a7e'),
   shore: new THREE.Color('#b9a57f'),
-  farForest: new THREE.Color('#3f6236'),
-  farMeadow: new THREE.Color('#7c9a4c'),
+  farForest: new THREE.Color('#4c6442'),
+  farMeadow: new THREE.Color('#869a59'),
 };
 
 export class Biome {

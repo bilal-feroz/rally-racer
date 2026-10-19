@@ -85,11 +85,11 @@ export interface TreeKind {
 export function buildTreeKinds(seed = 7): TreeKind[] {
   const rnd = mulberry32(seed);
   const kinds: TreeKind[] = [];
-  const darkGreen = new THREE.Color('#3f7040');
-  const midGreen = new THREE.Color('#548a4a');
-  const olive = new THREE.Color('#6f8c3e');
-  const yellowGreen = new THREE.Color('#87a24a');
-  const leafDark = new THREE.Color('#58763a');
+  const darkGreen = new THREE.Color('#476b48');
+  const midGreen = new THREE.Color('#5d8155');
+  const olive = new THREE.Color('#7a8c4f');
+  const yellowGreen = new THREE.Color('#8f9f58');
+  const leafDark = new THREE.Color('#5f7448');
 
   // --- tall spruce: stacked faceted tiers
   {
@@ -126,32 +126,32 @@ export function buildTreeKinds(seed = 7): TreeKind[] {
       [1.5, 2.5, 2.2],
       [1.0, 2.3, 3.7],
     ];
-    const c = new THREE.Color('#4f8445');
+    const c = new THREE.Color('#587e4d');
     tiers.forEach(([r, h, y]) => parts.push(coneTier(r, h, y, 6, c, rnd)));
     const low = mergeGeometries([coneTier(1.9, 5.5, 0.5, 5, c, rnd)]);
     kinds.push({ name: 'fir', high: mergeGeometries(parts), low, trunkR: 0.18, conifer: true });
   }
-  // --- broadleaf: tall trunk with chunky faceted crown clusters
+  // --- broadleaf: tall trunk with chunky faceted crown clusters high up (reference look)
   {
-    const parts = [trunk(0.34, 0.2, 6.5, rnd)];
+    const parts = [trunk(0.36, 0.2, 9.5, rnd, TRUNK_DARK)];
     // two forked limbs
-    for (const s of [1, -1]) {
-      const limb = new THREE.CylinderGeometry(0.1, 0.16, 3.2, 5, 1, true);
-      limb.translate(0, 1.6, 0);
-      limb.rotateZ(s * 0.55);
-      limb.translate(0, 4.6, 0);
-      parts.push(colorize(limb, TRUNK, 0.1, rnd));
+    for (const sgn of [1, -1]) {
+      const limb = new THREE.CylinderGeometry(0.1, 0.16, 3.4, 5, 1, true);
+      limb.translate(0, 1.7, 0);
+      limb.rotateZ(sgn * 0.5);
+      limb.translate(0, 7.4, 0);
+      parts.push(colorize(limb, TRUNK_DARK, 0.1, rnd));
     }
     const blobs = [
-      [2.7, 0, 8.4, 0],
-      [2.2, 1.9, 7.6, 0.8],
-      [2.1, -1.8, 7.4, -0.6],
-      [1.9, 0.5, 9.9, -1.2],
-      [1.8, -0.7, 7.1, 1.7],
+      [2.8, 0, 11.6, 0],
+      [2.3, 1.9, 10.7, 0.8],
+      [2.2, -1.8, 10.5, -0.6],
+      [2.0, 0.5, 13.0, -1.2],
+      [1.9, -0.7, 10.1, 1.7],
     ];
     blobs.forEach(([r, x, y, z], i) => parts.push(blob(r, x, y, z, olive.clone().lerp(yellowGreen, (i % 3) / 3), rnd)));
-    const low = mergeGeometries([trunk(0.34, 0.2, 6.5, rnd), blob(3.4, 0, 8.3, 0, olive, rnd)]);
-    kinds.push({ name: 'oak', high: mergeGeometries(parts), low, trunkR: 0.38, conifer: false });
+    const low = mergeGeometries([trunk(0.36, 0.2, 9.5, rnd, TRUNK_DARK), blob(3.5, 0, 11.4, 0, olive, rnd)]);
+    kinds.push({ name: 'oak', high: mergeGeometries(parts), low, trunkR: 0.4, conifer: false });
   }
   // --- broadleaf round, lower crown
   {

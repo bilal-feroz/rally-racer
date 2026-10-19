@@ -66,3 +66,99 @@ Test environment for every run: Windows 11, RTX 3050 Laptop GPU (ANGLE/D3D11), R
 **Result:** the autopilot run finished in 107.7 s with 1 auto-recovery (fast S-bend at 98 mph, and the off-camber right).
 
 **Next:** autopilot reliability → a clean run; a dust/skid review in motion; a portrait capture; a HUD and camera comparison against the reference.
+
+## Iteration 3: test suite, scenario captures, narrower road
+**Evidence:**
+- `scripts/capture.mjs` produced 16 named frames (`.cache/cap1`, `cap2`). I opened and reviewed every one.
+- Playwright: first 6/9 passing, then 9/9.
+
+**Problems found in the frames**
+1. **Dust was invisible.** Particles only inherited 25% of the car's velocity, so they passed behind the chase camera within about 0.2 s.
+2. The **TV cam** placed itself inside the forest and filmed tree trunks.
+3. The **hood cam** sat inside the cabin, so 60% of the screen was black outline shells.
+4. The **spawn** was right under the arch with the banner clipped, and the car was in reverse at the line because the settle loop held the brake.
+5. Next to the reference ("Narrow Roads!") our road was about 14 m of tan surface, roughly 4 car widths. Too wide.
+
+**Changes**
+- Dust inherits 62–84% of car velocity and is thrown outward, so plumes linger near the wheels. They show clearly in `drift.png`.
+- TV cam scores candidate spots by trunk clearance and corner curvature.
+- Bonnet cam moved outside the cabin shell.
+- Spawn is 16 m behind the arch with handbrake-only hold.
+- Road narrowed to 7.8 m plus 2 m shoulders, with denser roadside trees.
+- Car paint is now a clear-coat MeshPhysical reflecting a PMREM sky env map.
+
+**Tests:**
+- 9/9 pass. The test bugs were an ambiguous locator, too short a jump window, and a steering test that drove into a tree.
+- Full drive: 90.9 s clean.
+
+## Iteration 4: keyboard drivability + high-speed stability
+**Evidence:** a keyboard-emulating bot (`DIGITAL=1`, on/off keys) spun at 94 mph.
+- Trace (`scripts/trace-digital.mjs`): a full-lock tap still gave **8.8° of front-wheel angle at 100 mph**, about 12× what the corner needed.
+- The countersteer assist then snapped the car back hard.
+
+**Changes**
+- High-speed lock falls to about 4.2° (smoothstep 18 → 50 m/s), and the steering rate slows 40% at speed.
+- Drift stabiliser: yaw torque beyond 20° body slip.
+- Softer countersteer assist (gain 0.5, max 16°).
+- Yaw inertia raised to 2000, and high-speed rear grip to 1.10.
+- Smaller first jump. It was about 1 s of air at 70 mph, against about 0.5 s in the reference.
+
+**Bench (keyboard tests, flat plane)**
+- Full lock held 1.2 s at 25 / 35 / 45 m/s: peak slip 10° / 9° / 7.6°. It settles 1.55 / 0.9 / 0.55 s after release.
+- Left-right flick at 40 m/s: 7° peak, no spin.
+- Low-speed fun is kept: lift-off 12.6°, handbrake flick 83°, power oversteer 11°.
+
+**Result:**
+- The keyboard bot completed the stage in **105.8 s with 0 recoveries**.
+- The analog autopilot ran 90.7 s clean.
+
+## Iteration 5: lake vista, fading skid marks, audio + perf evidence
+- **Lake:** fills the designed valley below the downhill vista. PBR water reflects the sky env map, with ripple normals and a shore band. Trees are kept out.
+  - The first two attempts were invisible in captures. The lake was hidden behind roadside forest and then capped too low by the road-height clamp.
+  - I re-centred it on the bowl and opened the right side of the vista, so it is now glimpsed from the jump crest (`jump.png`).
+- **Skid marks** now fade over about 40 s.
+- **Audio:** `scripts/audio-check.mjs` renders the real worklet and filter graph offline.
+  - No NaN, peak 0.68, RMS −20 dB (idle) to −13 dB (load).
+  - Zero-crossing rate follows RPM (62 Hz at idle = 2× the 31.7 Hz firing rate).
+  - A spectrogram shows the harmonic stack rising with RPM, dips on gear changes and crackle bursts on lift-off. I then reduced the combustion noise floor.
+  - **Caveat:** I can't listen in this environment. The WAV is at `docs/audio/engine-sweep.wav` for a human ear.
+- **Performance** (`scripts/perf.mjs`, 1920×1080, real-time loop, autopilot driving, RTX 3050 Laptop):
+  - Frame rate: **125 fps average, 8.0 ms mean, 8.4 ms p95**, 15.8 ms p99.
+  - One 84 ms first-view hitch. Textures are now pre-uploaded at load to avoid it.
+  - About 940 draw calls and 2.0 M triangles per frame.
+  - JS heap flat (122 → 118 MB) over 30 s.
+
+## Iteration 6: presets, gamepad + 9:16 tests, camera look-ahead, UI review
+- High / Medium / Low presets (pixel ratio, shadow map 4096/2048/1536, vegetation LOD 420/330/240 m). There is a one-step automatic downgrade under 42 fps.
+- The camera glances into corners using yaw rate.
+- Tests 10 and 11:
+  - **Mocked gamepad**: a stick and triggers injected via `navigator.getGamepads` drive, steer and brake.
+  - **9:16 preview**: canvas, buffer and camera aspect all equal 0.5625, so there is no stretching.
+- UI captures from the normal boot path. The title screen is ready 4.8 s after navigation. Generation itself: terrain 1.07 s, meshes 0.9 s, forest 0.68 s.
+- The backfire was a cone that read as a yellow map pin. It is now a flickering fireball sprite.
+
+## Iteration 7: reference side-by-side and art-direction pass
+**Evidence:** `screenshots/reference-comparison.jpg` (local only, git-ignored) puts four reference frames next to ours.
+
+**Differences I observed**
+1. Our foliage was a saturated kelly green. The reference is olive and grey-green.
+2. **Our road shadows were dark brown, about 0.45× the lit road. The reference's are a light lavender-grey, about 0.7×.**
+3. Distant forest was too crisp. The reference has stronger haze.
+4. Our paint was slightly maroon with thin outlines.
+5. The portrait camera pitched down 11°, putting the horizon at 37%. The reference is nearly level, with the horizon at about 46%.
+6. Our road was too orange, and its crack cells looked like a regular tile grid.
+
+**Changes**
+- Olive palette for trees and grass.
+- Hemisphere fill 1.55 → 2.2 with a lavender sky colour, and the sun 2.9 → 2.6.
+- Fog density 0.00052 → 0.00068.
+- Brighter red paint, outline width +30%.
+- Computed a new portrait rig: 2.2 m high, 7 m back, aimed 7.5 m ahead at roof height.
+- Creamier road palette, plus domain-warped two-scale Voronoi cracks.
+- Taller broadleaf trees with long dark trunks.
+- CSS transitions are disabled in test mode, so captures no longer ghost "GO!".
+
+**Result**
+- `portrait-compare` now matches the reference: horizon at about 45%, car centre at about 60%, about 33% of frame width.
+- The banked-corner portrait reads like the reference's "banked corners" frame.
+- 11/11 tests pass on both the dev server and the production build. The deterministic finish was 90.716 s on both.

@@ -7,16 +7,16 @@ import * as THREE from 'three';
 export const PALETTE = {
   sunDir: new THREE.Vector3(-0.45, 0.62, 0.64).normalize(),
   sunColor: new THREE.Color('#fff0d6'),
-  sunIntensity: 2.9,
-  hemiSky: new THREE.Color('#aecdf2'),
-  hemiGround: new THREE.Color('#5d6b3c'),
-  hemiIntensity: 1.55,
+  sunIntensity: 2.6,
+  hemiSky: new THREE.Color('#b5c9ef'),
+  hemiGround: new THREE.Color('#6b6f4c'),
+  hemiIntensity: 2.2,
   zenith: new THREE.Color('#2f78d6'),
   skyMid: new THREE.Color('#62a3ea'),
   horizon: new THREE.Color('#cfe2f2'),
-  fog: new THREE.Color('#c4d8ea'),
+  fog: new THREE.Color('#c8d9ea'),
   fogSun: new THREE.Color('#f4e6cc'),
-  fogDensity: 0.00052,
+  fogDensity: 0.00068,
 };
 
 function v3(c: THREE.Color | THREE.Vector3): string {

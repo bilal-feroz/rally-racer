@@ -178,7 +178,7 @@ export class CarModel {
     const grad = makeToonGradient();
     // glossy clear-coated paint reflecting the sky; falls back to toon if no env map
     this.paint = envMap
-      ? new THREE.MeshPhysicalMaterial({ color: '#bf0f18', roughness: 0.42, metalness: 0.0, clearcoat: 0.65, clearcoatRoughness: 0.14, envMap, envMapIntensity: 0.45 })
+      ? new THREE.MeshPhysicalMaterial({ color: '#d01620', roughness: 0.45, metalness: 0.0, clearcoat: 0.55, clearcoatRoughness: 0.16, envMap, envMapIntensity: 0.32 })
       : new THREE.MeshToonMaterial({ color: '#c3141c', gradientMap: grad });
     const paintDark = envMap
       ? new THREE.MeshPhysicalMaterial({ color: '#8f0d14', roughness: 0.45, clearcoat: 0.6, clearcoatRoughness: 0.2, envMap, envMapIntensity: 0.6 })
@@ -194,7 +194,7 @@ export class CarModel {
     this.headMat = new THREE.MeshLambertMaterial({ color: '#fffbe8', emissive: '#fff3c4', emissiveIntensity: 0.35 });
     const amber = new THREE.MeshLambertMaterial({ color: '#ffb02e', emissive: '#ff9a00', emissiveIntensity: 0.25 });
     this.outlineMat = new THREE.ShaderMaterial({
-      uniforms: { uWidth: { value: 0.016 }, uColor: { value: new THREE.Color('#141014') } },
+      uniforms: { uWidth: { value: 0.021 }, uColor: { value: new THREE.Color('#141014') } },
       vertexShader: OUTLINE_VS,
       fragmentShader: OUTLINE_FS,
       side: THREE.BackSide,
@@ -332,7 +332,7 @@ export class CarModel {
     roundel.position.set(0, 1.313, 0.02);
     this.body.add(roundel);
     // hood stripes / bonnet vent
-    add(box(0.5, 0.02, 0.4, 0, 0.84, 1.3), black, false, false);
+    add(box(0.36, 0.02, 0.24, 0, 0.83, 1.42), trim, false, false);
     // mud flaps
     for (const side of [1, -1]) add(box(0.24, 0.16, 0.02, side * 0.6, 0.26, CAR.rearAxleZ - 0.46), black, false);
 

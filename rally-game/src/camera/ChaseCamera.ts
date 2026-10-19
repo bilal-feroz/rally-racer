@@ -23,6 +23,7 @@ export class ChaseCamera {
   private heightOff = 2.2;
   private pitchLook = 0;
   private turnLook = 0;
+  private followY = 0;
   private init = false;
   private shakeAmp = 0;
   private shakeT = 0;
@@ -66,7 +67,7 @@ export class ChaseCamera {
 
     if (this.mode === 'hood') {
       // bonnet cam: just ahead of the windscreen, above the hood (outside the cabin shell)
-      cam.position.copy(carPos).addScaledVector(_up, 0.53).addScaledVector(_fwd, 1.08);
+      cam.position.copy(carPos).addScaledVector(_up, 0.56).addScaledVector(_fwd, 1.3);
       this.look.copy(cam.position).addScaledVector(_fwd, 20).addScaledVector(_up, -0.35);
       cam.up.copy(_up).lerp(_v.set(0, 1, 0), 0.6).normalize();
       cam.lookAt(this.look);
@@ -123,8 +124,8 @@ export class ChaseCamera {
     this.yaw += wrapAngle(target - this.yaw) * (1 - Math.exp(-yawRate * dt));
     this.yaw = wrapAngle(this.yaw);
 
-    const dist = (this.portrait ? 6.2 : 5.7) + vh * 0.014;
-    const height = this.portrait ? 2.45 : 2.3;
+    const dist = (this.portrait ? 7.0 : 5.7) + vh * 0.014;
+    const height = this.portrait ? 2.2 : 2.3;
     const dx = -Math.sin(this.yaw) * dist;
     const dz = -Math.cos(this.yaw) * dist;
     if (!this.init) {
@@ -135,12 +136,16 @@ export class ChaseCamera {
     this.offset.z = damp(this.offset.z, dz, 14, dt);
     // vertical: soft spring so crests and jumps breathe
     this.heightOff = damp(this.heightOff, height - clamp(sim.vel.y * 0.05, -0.5, 0.5), sim.groundedWheels === 0 ? 2.2 : 4, dt);
-    cam.position.set(carPos.x + this.offset.x, carPos.y + this.heightOff, carPos.z + this.offset.z);
+    // vertical follow lags while airborne so jumps visibly lift the car in frame
+    if (!this.init) this.followY = carPos.y;
+    this.followY = damp(this.followY, carPos.y, sim.groundedWheels === 0 ? 1.6 : 9, dt);
+    cam.position.set(carPos.x + this.offset.x, this.followY + this.heightOff, carPos.z + this.offset.z);
     const g = field.heightAt(cam.position.x, cam.position.z);
     if (cam.position.y < g + 0.9) cam.position.y = g + 0.9;
 
     // look slightly ahead into the corner
-    const la = 1.2 + vh * 0.05;
+    // portrait framing (reference): nearly level camera aimed far down the road
+    const la = (this.portrait ? 7.5 : 1.2) + vh * 0.05;
     const ly = Math.sin(this.yaw);
     const lz = Math.cos(this.yaw);
     this.pitchLook = damp(this.pitchLook, clamp(sim.vel.y * 0.04, -0.4, 0.4), 4, dt);
@@ -150,7 +155,7 @@ export class ChaseCamera {
     const lzLeft = -Math.sin(this.yaw);
     this.look.set(
       carPos.x + ly * la + lx * this.turnLook,
-      carPos.y + (this.portrait ? 0.7 : 0.62) + this.pitchLook,
+      this.followY + (this.portrait ? 1.05 : 0.62) + this.pitchLook,
       carPos.z + lz * la + lzLeft * this.turnLook,
     );
     if (this.shakeAmp > 0.001) {

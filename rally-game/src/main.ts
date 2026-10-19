@@ -21,6 +21,8 @@ const overlayRoot = document.getElementById('overlay-root') as HTMLElement;
 canvas.tabIndex = 0;
 
 if (opts.portrait) document.body.classList.add('portrait-preview');
+// deterministic captures: no CSS fades in test mode
+if (opts.test) document.body.classList.add('test-mode');
 
 // loading screen
 const loading = document.createElement('div');

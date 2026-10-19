@@ -51,18 +51,20 @@ export class RoadMesh {
   float d = vRoad.x; float s = vRoad.y; float hw = vRoad.z;
   float ad = abs(d);
   vec2 wp = vRoadWP.xz;
-  vec3 hard = srgb2lin(vec3(0.84, 0.68, 0.51));
-  vec3 dusty = srgb2lin(vec3(0.91, 0.79, 0.62));
-  vec3 packed = srgb2lin(vec3(0.74, 0.57, 0.42));
-  vec3 track = srgb2lin(vec3(0.42, 0.36, 0.33));
-  vec3 gravel = srgb2lin(vec3(0.85, 0.75, 0.59));
-  vec3 sand = srgb2lin(vec3(0.85, 0.75, 0.585));
+  vec3 hard = srgb2lin(vec3(0.87, 0.75, 0.63));
+  vec3 dusty = srgb2lin(vec3(0.93, 0.85, 0.74));
+  vec3 packed = srgb2lin(vec3(0.79, 0.66, 0.54));
+  vec3 track = srgb2lin(vec3(0.45, 0.4, 0.38));
+  vec3 gravel = srgb2lin(vec3(0.88, 0.8, 0.67));
+  vec3 sand = srgb2lin(vec3(0.87, 0.78, 0.64));
   float big = rFbm(wp * 0.045);
   vec3 col = mix(packed, hard, smoothstep(0.25, 0.6, big));
   col = mix(col, dusty, smoothstep(0.55, 0.85, rFbm(wp * 0.11 + 7.0)) * 0.7);
   // cracked hardpack cells
-  float cells = rCells(wp * 1.2);
-  col *= mix(0.9, 1.0, smoothstep(0.0, 0.05, cells));
+  // domain-warped, two-scale voronoi: irregular dried-mud cracks rather than tiles
+  vec2 warp = vec2(rNoise(wp * 0.33), rNoise(wp * 0.33 + 17.3)) * 1.4;
+  float cells = min(rCells(wp * 0.95 + warp), rCells(wp * 2.1 - warp * 1.7 + 5.0) + 0.035);
+  col *= mix(0.84, 1.0, smoothstep(0.0, 0.045, cells));
   // fine grain
   col *= 0.94 + 0.12 * rNoise(wp * 9.0);
   // tyre tracks: meandering racing lines

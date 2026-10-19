@@ -13,3 +13,7 @@ rally-game/.cache/
 *.log
 .DS_Store
 Thumbs.db
+
+# Large local deliverables
+rally-game/demo*.mp4
+rally-game/.cache/

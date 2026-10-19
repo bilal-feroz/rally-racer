@@ -511,3 +511,10 @@ button.btn:hover {
     font-size: calc(80px * var(--s));
   }
 }
+
+/* automated captures: show HUD state instantly */
+body.test-mode *,
+body.test-mode *::before,
+body.test-mode *::after {
+  transition: none !important;
+}
